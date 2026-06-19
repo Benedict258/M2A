@@ -1,0 +1,35 @@
+{
+  "name": "m2a",
+  "private": true,
+  "packageManager": "npm@11.16.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n runtime,studio -c green,magenta 'npm run dev:runtime' 'npm run dev:studio'",
+    "start": "concurrently -n runtime,studio -c green,magenta 'npm run start:runtime' 'npm run start:studio'",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "dev:studio": "npm -w @m2a/studio run dev",
+    "dev:runtime": "npm -w @m2a/runtime run dev",
+    "dev:runtime:mcp": "npm -w @m2a/runtime run dev:mcp",
+    "start:runtime": "npm -w @m2a/runtime run start",
+    "start:studio": "npm -w @m2a/studio run start",
+    "start:runtime:mcp": "npm -w @m2a/runtime run start:mcp",
+    "build:studio": "npm -w @m2a/studio run build",
+    "build:client": "npm -w @m2a/client run build",
+    "build:packages": "npm -w @m2a/sdk run build && npm -w @m2a/client run build && npm -w @m2a/agent-wallet run build",
+    "build:sdk": "npm -w @m2a/sdk run build",
+    "build:runtime": "npm -w @m2a/runtime run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "~5.7.3"
+  }
+}

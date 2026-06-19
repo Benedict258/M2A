@@ -1,0 +1,76 @@
+<div class="flex h-screen w-screen flex-col overflow-hidden">
+  <app-header
+    [workflowName]="workflowName()"
+    [isExecuting]="isExecuting()"
+    [sidebarOpen]="sidebarOpen()"
+    (toggleSidebar)="toggleSidebar()"
+    (workflowNameChange)="onWorkflowNameChange($event)"
+    (run)="handleRun()"
+    (openTemplates)="showTemplates.set(true)"
+    (openAdmin)="showAdmin.set(true)"
+    (openCreateAgent)="showCreateAgent.set(true)"
+    (openTopUp)="showTopUp.set($event)"
+    (exportMCP)="handleExportMCP()"
+  />
+
+  <div class="flex flex-1 overflow-hidden">
+    <app-sidebar
+      [open]="sidebarOpen()"
+      (close)="onSidebarClose()"
+      (selectWorkflow)="loadWorkflow($event)"
+      (addNode)="addNodeToCanvas($event)"
+    />
+
+    <div class="relative flex-1">
+      <app-editor
+        #editor
+        class="h-full w-full"
+        [nodes]="workflowNodes()"
+        [edges]="workflowEdges()"
+        [selectedNodeId]="selectedNodeId()"
+        (nodesChange)="onNodesChange($event)"
+        (edgesChange)="onEdgesChange($event)"
+        (selectNode)="onSelectNode($event)"
+        (deselectNode)="onDeselectNode()"
+      />
+
+      @if (showActionPalette()) {
+        <app-action-palette
+          (close)="showActionPalette.set(false)"
+          (selectNode)="addNodeToCanvas($event); showActionPalette.set(false)"
+        />
+      }
+    </div>
+
+    <app-node-panel
+      [nodeId]="selectedNodeId()"
+      [node]="selectedNode()"
+      (update)="updateNodeData($event.nodeId, $event.updates)"
+    />
+  </div>
+
+  <app-bottom-panel
+    [executionLogs]="executionLogs()"
+    [executionResults]="executionResults()"
+    [nodeStates]="nodeStates()"
+  />
+</div>
+
+@if (showTemplates()) {
+  <app-template-marketplace
+    (close)="showTemplates.set(false)"
+    (selectTemplate)="loadWorkflow($event)"
+  />
+}
+
+@if (showAdmin()) {
+  <app-admin-dashboard (close)="showAdmin.set(false)" />
+}
+
+@if (showCreateAgent()) {
+  <app-create-agent-dialog (close)="afterCreateAgent()" />
+}
+
+@if (showTopUp(); as agent) {
+  <app-agent-top-up-dialog [agent]="agent" (close)="showTopUp.set(null)" />
+}

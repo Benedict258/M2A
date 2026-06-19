@@ -1,0 +1,935 @@
+mod alerts;
+mod auth;
+mod compatibility;
+mod engine;
+mod jobs;
+mod mcp_proxy;
+mod observability;
+mod rate_limit;
+mod routes;
+mod services;
+mod storage;
+mod types;
+
+use axum::http::{header, HeaderValue, Method};
+use axum::{
+    extract::DefaultBodyLimit,
+    middleware,
+    routing::{get, post},
+    Router,
+};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tower_http::cors::{AllowOrigin, CorsLayer};
+
+use apalis::prelude::*;
+use apalis_sql::postgres::PostgresStorage;
+use sqlx::postgres::PgPoolOptions;
+
+use alerts::AlertManager;
+use engine::{MemoryEngine, PlaintextEngine, WalrusSealEngine};
+use jobs::{
+    execute_bulk_remember, execute_wallet_job, BulkRememberJob, MetaTransferJob, RememberJob,
+    WalletJobStorage,
+};
+use services::{CompositeRanker, Embedder, Extractor, LlmExtractor, OpenAiEmbedder, Ranker};
+use storage::db::VectorDb;
+use types::{
+    AppState, Config, KeyPool, DEFAULT_BLOB_CACHE_MAX_BYTES, DEFAULT_BLOB_CACHE_TTL_SECS,
+    DEFAULT_EMBEDDING_CACHE_TTL_SECS,
+};
+
+const STALE_REMEMBER_JOB_AFTER: std::time::Duration = std::time::Duration::from_secs(10 * 60);
+const APALIS_MONITOR_RESTART_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
+const DEFAULT_APALIS_STARTUP_TIMEOUT_SECS: u64 = 45;
+
+fn parse_env_u64(name: &str, fallback: u64, min: u64, max: u64) -> u64 {
+    let Ok(raw) = std::env::var(name) else {
+        return fallback;
+    };
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return fallback;
+    }
+    let Ok(parsed) = raw.parse::<u64>() else {
+        tracing::warn!("ignoring invalid {}={}; using {}", name, raw, fallback);
+        return fallback;
+    };
+    if parsed < min {
+        tracing::warn!("ignoring too-small {}={}; using {}", name, parsed, fallback);
+        return fallback;
+    }
+    if parsed > max {
+        tracing::warn!("clamping {}={} to {}", name, parsed, max);
+        return max;
+    }
+    parsed
+}
+
+fn parse_env_u32(name: &str, fallback: u32, min: u32, max: u32) -> u32 {
+    parse_env_u64(name, fallback as u64, min as u64, max as u64) as u32
+}
+
+async fn init_apalis_pool(
+    database_url: &str,
+    startup_timeout: std::time::Duration,
+) -> Result<sqlx::PgPool, String> {
+    let statement_timeout = format!("{}ms", startup_timeout.as_millis().min(300_000));
+    let lock_timeout_ms = (startup_timeout.as_millis() / 3).clamp(1_000, 30_000);
+    let lock_timeout = format!("{}ms", lock_timeout_ms);
+
+    tracing::info!(
+        "  Apalis: connecting to PostgreSQL (startup_timeout={}s)",
+        startup_timeout.as_secs()
+    );
+    let pool_future = PgPoolOptions::new()
+        .max_connections(10)
+        .acquire_timeout(startup_timeout)
+        .after_connect(move |conn, _meta| {
+            let statement_timeout = statement_timeout.clone();
+            let lock_timeout = lock_timeout.clone();
+            Box::pin(async move {
+                sqlx::query(
+                    "SELECT set_config('statement_timeout', $1, false), \
+                            set_config('lock_timeout', $2, false), \
+                            set_config('idle_in_transaction_session_timeout', $1, false)",
+                )
+                .bind(statement_timeout)
+                .bind(lock_timeout)
+                .execute(conn)
+                .await?;
+                Ok(())
+            })
+        })
+        .connect(database_url);
+
+    let pool = match tokio::time::timeout(startup_timeout, pool_future).await {
+        Ok(Ok(pool)) => pool,
+        Ok(Err(err)) => return Err(format!("connect to PostgreSQL for Apalis: {err}")),
+        Err(_) => {
+            return Err(format!(
+                "timed out after {}s connecting to PostgreSQL for Apalis",
+                startup_timeout.as_secs()
+            ))
+        }
+    };
+    tracing::info!("  Apalis: PostgreSQL connected");
+
+    let schema_ready = match tokio::time::timeout(startup_timeout, apalis_schema_ready(&pool)).await
+    {
+        Ok(Ok(ready)) => ready,
+        Ok(Err(err)) => return Err(format!("check Apalis schema readiness: {err}")),
+        Err(_) => {
+            return Err(format!(
+                "timed out after {}s checking Apalis schema readiness",
+                startup_timeout.as_secs()
+            ))
+        }
+    };
+    if schema_ready {
+        tracing::info!("  Apalis: PostgreSQL schema already current");
+        return Ok(pool);
+    }
+
+    tracing::info!("  Apalis: running PostgreSQL migrations");
+    match tokio::time::timeout(startup_timeout, PostgresStorage::<()>::setup(&pool)).await {
+        Ok(Ok(())) => {
+            tracing::info!("  Apalis: PostgreSQL migrations applied");
+            Ok(pool)
+        }
+        Ok(Err(err)) => Err(format!("run Apalis PostgreSQL migrations: {err}")),
+        Err(_) => Err(format!(
+            "timed out after {}s running Apalis PostgreSQL migrations",
+            startup_timeout.as_secs()
+        )),
+    }
+}
+
+async fn apalis_schema_ready(pool: &sqlx::PgPool) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'apalis'
+              AND table_name = 'jobs'
+              AND column_name = 'priority'
+        ) AND EXISTS (
+            SELECT 1
+            FROM pg_proc p
+            JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE n.nspname = 'apalis'
+              AND p.proname = 'get_jobs'
+        )",
+    )
+    .fetch_one(pool)
+    .await
+}
+
+#[tokio::main]
+async fn main() {
+    // Load .env file (optional, won't error if missing)
+    dotenvy::dotenv().ok();
+
+    let telemetry = observability::init_tracing();
+
+    // Load config
+    let config = Config::from_env();
+    tracing::info!("starting memwal server on port {}", config.port);
+    tracing::info!("  Sui RPC: {}", config.sui_rpc_url);
+    tracing::info!("  package id: {}", config.package_id);
+    tracing::info!("  registry id: {}", config.registry_id);
+    tracing::info!(
+        "  memwal account: {}",
+        config
+            .memwal_account_id
+            .as_deref()
+            .unwrap_or("(from client header)")
+    );
+    tracing::info!(
+        "  rate limit: burst={}/min, sustained={}/hr, per-key={}/min, quota={}MB/user",
+        config.rate_limit.max_requests_per_minute,
+        config.rate_limit.max_requests_per_hour,
+        config.rate_limit.max_requests_per_delegate_key,
+        config.rate_limit.max_storage_bytes / 1_048_576
+    );
+    tracing::info!(
+        "  sponsor rate limit: {}/min, {}/hr per IP+sender",
+        config.sponsor_rate_limit.per_minute,
+        config.sponsor_rate_limit.per_hour,
+    );
+    if config.rate_limit.bench_bypass_enabled {
+        // Storage quota is unaffected — this only skips the request-rate
+        // buckets. The warning is split across lines so each one is grep-able
+        // and renders clearly in stacked log output.
+        tracing::warn!("⚠️  RATE_LIMIT_DISABLED=1 — request-rate limiter BYPASSED.");
+        tracing::warn!("⚠️  Benchmark-only escape hatch. UNSAFE outside localhost benches.");
+        tracing::warn!("⚠️  Unset RATE_LIMIT_DISABLED to restore protection.");
+    }
+
+    // Start TS sidecar HTTP server (SEAL + Walrus operations)
+    let sidecar_url = config.sidecar_url.clone();
+    tracing::info!("  sidecar: starting at {}", sidecar_url);
+    // Use SIDECAR_SCRIPTS_DIR if set (Docker), otherwise derive from CARGO_MANIFEST_DIR (local dev)
+    let scripts_dir = std::env::var("SIDECAR_SCRIPTS_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts"));
+    let mcp_relayer_url = std::env::var("MEMWAL_RELAYER_URL")
+        .unwrap_or_else(|_| format!("http://127.0.0.1:{}", config.port));
+    let mut sidecar_child = tokio::process::Command::new("npx")
+        .args(["tsx", "sidecar-server.ts"])
+        .current_dir(&scripts_dir)
+        .env("MEMWAL_RELAYER_URL", mcp_relayer_url)
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .spawn()
+        .expect("Failed to start TS sidecar. Is Node.js installed?");
+
+    // Wait for sidecar to be ready (health check with retry)
+    // Set 30s timeout on HTTP client to prevent hanging LLM/Walrus requests
+    let http_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .expect("Failed to build HTTP client");
+    let health_url = format!("{}/health", sidecar_url);
+    let mut ready = false;
+    for attempt in 1..=30 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        match http_client.get(&health_url).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                tracing::info!("  sidecar: ready (attempt {})", attempt);
+                ready = true;
+                break;
+            }
+            _ => {
+                if attempt % 5 == 0 {
+                    tracing::debug!("  sidecar: waiting... (attempt {})", attempt);
+                }
+            }
+        }
+    }
+    if !ready {
+        sidecar_child.kill().await.ok();
+        panic!("TS sidecar failed to start after 15s. Check scripts/sidecar-server.ts");
+    }
+
+    // Keep a cheap heartbeat in the Rust logs so operators can distinguish
+    // Enoki/Walrus failures from the sidecar process becoming unavailable.
+    // If the sidecar remains unhealthy, exit the relayer so Railway restarts
+    // the whole container and brings up a fresh sidecar process.
+    let sidecar_watch_interval_secs = parse_env_u64("SIDECAR_WATCHDOG_INTERVAL_SECS", 30, 5, 300);
+    let sidecar_watch_timeout_secs = parse_env_u64("SIDECAR_WATCHDOG_TIMEOUT_SECS", 2, 1, 30);
+    let sidecar_watch_max_failures = parse_env_u32("SIDECAR_WATCHDOG_MAX_FAILURES", 6, 1, 100);
+    tracing::info!(
+        "  sidecar watchdog: interval={}s timeout={}s max_failures={}",
+        sidecar_watch_interval_secs,
+        sidecar_watch_timeout_secs,
+        sidecar_watch_max_failures
+    );
+    let sidecar_watch_client = http_client.clone();
+    let sidecar_watch_url = health_url.clone();
+    tokio::spawn(async move {
+        let mut interval =
+            tokio::time::interval(std::time::Duration::from_secs(sidecar_watch_interval_secs));
+        let mut consecutive_failures = 0u32;
+        loop {
+            interval.tick().await;
+            match sidecar_watch_client
+                .get(&sidecar_watch_url)
+                .timeout(std::time::Duration::from_secs(sidecar_watch_timeout_secs))
+                .send()
+                .await
+            {
+                Ok(resp) if resp.status().is_success() => {
+                    if consecutive_failures > 0 {
+                        tracing::info!(
+                            "  sidecar: health recovered after {} failed check(s)",
+                            consecutive_failures
+                        );
+                    }
+                    consecutive_failures = 0;
+                }
+                Ok(resp) => {
+                    consecutive_failures += 1;
+                    tracing::error!(
+                        "  sidecar: health check failed status={} consecutive_failures={}",
+                        resp.status(),
+                        consecutive_failures
+                    );
+                }
+                Err(e) => {
+                    consecutive_failures += 1;
+                    tracing::error!(
+                        "  sidecar: health check error consecutive_failures={} error={}",
+                        consecutive_failures,
+                        e
+                    );
+                }
+            }
+            if consecutive_failures >= sidecar_watch_max_failures {
+                tracing::error!(
+                    "  sidecar: unhealthy for {} consecutive check(s); exiting relayer for supervisor restart",
+                    consecutive_failures
+                );
+                std::process::exit(1);
+            }
+        }
+    });
+
+    // Initialize database (PostgreSQL + pgvector).
+    // `Arc` so the MemoryEngine impl shares the same pool as the handlers.
+    let db = Arc::new(
+        VectorDb::new(&config.database_url)
+            .await
+            .expect("Failed to connect to PostgreSQL"),
+    );
+
+    let apalis_startup_timeout_secs = parse_env_u64(
+        "APALIS_STARTUP_TIMEOUT_SECS",
+        DEFAULT_APALIS_STARTUP_TIMEOUT_SECS,
+        5,
+        300,
+    );
+    let apalis_pool = init_apalis_pool(
+        &config.database_url,
+        std::time::Duration::from_secs(apalis_startup_timeout_secs),
+    )
+    .await
+    .unwrap_or_else(|err| panic!("Failed to initialize Apalis job queue: {err}"));
+    let job_storage: PostgresStorage<MetaTransferJob> = PostgresStorage::new(apalis_pool.clone());
+    let remember_job_storage: PostgresStorage<RememberJob> =
+        PostgresStorage::new(apalis_pool.clone());
+    // BulkRememberJob storage
+    let bulk_job_storage: PostgresStorage<BulkRememberJob> =
+        PostgresStorage::new(apalis_pool.clone());
+
+    // Single Apalis queue for all WalletJob signing operations. Workers select
+    // a key from the configured pool when they execute an upload job, so
+    // retries can rotate away from a wallet whose sponsored tx expired.
+    const WALLET_QUEUE_NAME: &str = "wallet_jobs";
+    let wallet_storage: WalletJobStorage = PostgresStorage::new_with_config(
+        apalis_pool.clone(),
+        apalis_sql::Config::new(WALLET_QUEUE_NAME),
+    );
+    tracing::info!(
+        "  Apalis: job queue ready (table=apalis_jobs, queue={})",
+        WALLET_QUEUE_NAME
+    );
+
+    reqwest::Url::parse(&config.walrus_publisher_url)
+        .expect("Failed to initialize Walrus publisher (invalid URL?)");
+    for aggregator_url in &config.walrus_aggregator_urls {
+        reqwest::Url::parse(aggregator_url)
+            .expect("Failed to initialize Walrus aggregator (invalid URL?)");
+    }
+    tracing::info!("  Walrus publisher: {}", config.walrus_publisher_url);
+    tracing::info!("  Walrus aggregator: {}", config.walrus_aggregator_url);
+    if config.walrus_aggregator_urls.len() > 1 {
+        tracing::info!(
+            "  Walrus aggregator race: {} candidates, race_after={}ms",
+            config.walrus_aggregator_urls.len(),
+            config.walrus_aggregator_race_after_ms
+        );
+    }
+    if config.walrus_skip_consistency_check {
+        tracing::warn!(
+            "  Walrus reads: WALRUS_SKIP_CONSISTENCY_CHECK=true for trusted Walrus Memory cold reads"
+        );
+    }
+    // Log upload key status
+    let pool_size = config.sui_private_keys.len();
+    if pool_size > 0 {
+        tracing::info!(
+            "  Walrus upload: {} key(s) configured; using round-robin wallet jobs",
+            pool_size,
+        );
+    } else {
+        tracing::warn!("  Walrus upload: no Sui private keys configured, uploads will fail");
+    }
+
+    // Build wallet key holder.
+    // `Arc` so the MemoryEngine impl's store_blob draws from the same pool.
+    // clone so handlers + the engine share one holder.
+    let key_pool = Arc::new(KeyPool::new(config.sui_private_keys.clone()));
+
+    // Initialize Redis for rate limiting
+    let redis = rate_limit::create_redis_client(&config.rate_limit.redis_url)
+        .await
+        .expect("Failed to connect to Redis for rate limiting");
+    tracing::info!("  Redis: connected at {}", config.rate_limit.redis_url);
+
+    // Redis Walrus blob ciphertext cache skips Walrus fetch on warm recall.
+    let blob_cache_ttl_secs = std::env::var("BLOB_CACHE_TTL_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_BLOB_CACHE_TTL_SECS);
+    let blob_cache_max_bytes = std::env::var("BLOB_CACHE_MAX_BYTES")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(DEFAULT_BLOB_CACHE_MAX_BYTES);
+    let embedding_cache_ttl_secs = std::env::var("EMBEDDING_CACHE_TTL_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_EMBEDDING_CACHE_TTL_SECS);
+    tracing::info!(
+        "  blob cache: redis ttl={}s max={} bytes (BLOB_CACHE_TTL_SECS={}, BLOB_CACHE_MAX_BYTES={}); embedding cache: redis ttl={}s (EMBEDDING_CACHE_TTL_SECS={})",
+        blob_cache_ttl_secs,
+        blob_cache_max_bytes,
+        blob_cache_ttl_secs,
+        blob_cache_max_bytes,
+        embedding_cache_ttl_secs,
+        embedding_cache_ttl_secs
+    );
+    let blob_cache_ttl = std::time::Duration::from_secs(blob_cache_ttl_secs);
+    let embedding_cache_ttl = std::time::Duration::from_secs(embedding_cache_ttl_secs);
+
+    if blob_cache_ttl.is_zero() {
+        tracing::warn!(
+            "  blob cache: BLOB_CACHE_TTL_SECS=0 disables cache hits and forces Walrus revalidation"
+        );
+    }
+    if blob_cache_max_bytes == 0 {
+        tracing::warn!("  blob cache: BLOB_CACHE_MAX_BYTES=0 disables blob cache reads and writes");
+    }
+    if embedding_cache_ttl.is_zero() {
+        tracing::warn!(
+            "  embedding cache: EMBEDDING_CACHE_TTL_SECS=0 disables recall query embedding cache hits"
+        );
+    }
+
+    // Wrap the immutable config so the MemoryEngine + handlers share it.
+    let config = Arc::new(config);
+
+    // Select the persistence engine. Production = WalrusSealEngine (SEAL
+    // encrypt happens in the handler/client; the engine uploads the
+    // ciphertext to Walrus and indexes the row, with the Redis blob
+    // cache + reactive cleanup on the read path). Benchmark =
+    // PlaintextEngine (plaintext straight to Postgres, no SEAL/Walrus).
+    // BENCHMARK_MODE is off by default and IS NOT FOR PRODUCTION USE.
+    let engine: Arc<dyn MemoryEngine> = if config.benchmark_mode {
+        tracing::warn!("⚠️  BENCHMARK_MODE=true — using PlaintextEngine.");
+        tracing::warn!("⚠️  Memories will be stored UNENCRYPTED in Postgres.");
+        tracing::warn!("⚠️  This is a benchmark-only mode. UNSAFE for production.");
+        Arc::new(PlaintextEngine::new(Arc::clone(&db)))
+    } else {
+        tracing::info!("  storage: WalrusSealEngine (production)");
+        Arc::new(WalrusSealEngine::new(
+            Arc::clone(&db),
+            http_client.clone(),
+            Arc::clone(&key_pool),
+            Arc::clone(&config),
+            redis.clone(),
+            blob_cache_ttl,
+            blob_cache_max_bytes,
+        ))
+    };
+
+    // Service-layer capabilities — shared (Arc<dyn …>) so alternative
+    // implementations can be swapped at startup. Both wrap the same
+    // http_client + config; behaviour is identical to the inline
+    // generate_embedding / extract_facts_llm they replace.
+    let embedder: Arc<dyn Embedder> = Arc::new(OpenAiEmbedder::new(
+        http_client.clone(),
+        Arc::clone(&config),
+    ));
+    let extractor: Arc<dyn Extractor> =
+        Arc::new(LlmExtractor::new(http_client.clone(), Arc::clone(&config)));
+    // CompositeRanker is stateless — one shared instance is fine.
+    let ranker: Arc<dyn Ranker> = Arc::new(CompositeRanker);
+
+    let alerts = Arc::new(AlertManager::from_env(http_client.clone()));
+
+    // Shared application state
+    let state = Arc::new(AppState {
+        db,
+        config: Arc::clone(&config),
+        http_client,
+        key_pool,
+        alerts,
+        engine,
+        embedder,
+        extractor,
+        ranker,
+        redis,
+        fallback_rate_limit: tokio::sync::Mutex::new(crate::rate_limit::InMemoryFallback::default()),
+        remember_job_storage: remember_job_storage.clone(),
+        wallet_storage: wallet_storage.clone(),
+        bulk_job_storage: bulk_job_storage.clone(),
+        blob_cache_ttl,
+        blob_cache_max_bytes,
+        embedding_cache_ttl,
+    });
+
+    tracing::info!(
+        "  alerts: Slack {} via ALERT_TO_SLACK",
+        if state.alerts.slack_enabled() {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+
+    // Sidecar upload-queue saturation monitor. The watchdog above only
+    // checks that /health answers; during the 2026-06-10 congestion incident
+    // it stayed green while 120 uploads queued and jobs burned their retry
+    // budgets. This monitor reads the queue counters that /health already
+    // exposes and alerts ops while there is still time to act (add wallets /
+    // throttle the burst) — before queued requests outlive the sidecar's
+    // 120s acquire timeout and start failing.
+    let saturation_threshold = parse_env_u64("SIDECAR_QUEUE_SATURATION_THRESHOLD", 20, 1, 10_000);
+    let saturation_consecutive =
+        parse_env_u32("SIDECAR_QUEUE_SATURATION_CONSECUTIVE", 4, 1, 100);
+    let saturation_interval_secs =
+        parse_env_u64("SIDECAR_QUEUE_SATURATION_INTERVAL_SECS", 30, 5, 300);
+    tracing::info!(
+        "  sidecar saturation monitor: threshold={} consecutive={} interval={}s",
+        saturation_threshold,
+        saturation_consecutive,
+        saturation_interval_secs
+    );
+    {
+        let monitor_client = state.http_client.clone();
+        let monitor_url = health_url.clone();
+        let monitor_alerts = Arc::clone(&state.alerts);
+        let monitor_network = config.sui_network.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(
+                saturation_interval_secs,
+            ));
+            let mut consecutive_saturated = 0u32;
+            loop {
+                interval.tick().await;
+                let body = match monitor_client
+                    .get(&monitor_url)
+                    .timeout(std::time::Duration::from_secs(2))
+                    .send()
+                    .await
+                {
+                    Ok(resp) if resp.status().is_success() => {
+                        match resp.json::<serde_json::Value>().await {
+                            Ok(v) => v,
+                            Err(_) => continue,
+                        }
+                    }
+                    // Liveness problems are the watchdog's job; only the
+                    // healthy-but-saturated case belongs here.
+                    _ => continue,
+                };
+
+                let queued = body["queuedWalrusUploads"].as_u64().unwrap_or(0);
+                let active = body["activeWalrusUploads"].as_u64().unwrap_or(0);
+                let global_capacity = body["walrusUploadLimits"]["globalCapacity"]
+                    .as_u64()
+                    .unwrap_or(0);
+
+                if queued > saturation_threshold {
+                    consecutive_saturated = consecutive_saturated.saturating_add(1);
+                    tracing::warn!(
+                        "  sidecar: upload queue saturated queued={} active={} capacity={} consecutive={}/{}",
+                        queued,
+                        active,
+                        global_capacity,
+                        consecutive_saturated,
+                        saturation_consecutive,
+                    );
+                } else {
+                    if consecutive_saturated >= saturation_consecutive {
+                        tracing::info!(
+                            "  sidecar: upload queue drained (queued={} <= threshold {})",
+                            queued,
+                            saturation_threshold,
+                        );
+                    }
+                    consecutive_saturated = 0;
+                }
+
+                // Alert once per crossing; the AlertManager dedup window
+                // handles re-alerting if the backlog persists.
+                if consecutive_saturated >= saturation_consecutive {
+                    let alert = crate::alerts::WalrusUploadQueueSaturatedAlert {
+                        sui_network: monitor_network.clone(),
+                        queued,
+                        active,
+                        global_capacity,
+                        threshold: saturation_threshold,
+                        consecutive_checks: consecutive_saturated,
+                    };
+                    if let Err(err) =
+                        monitor_alerts.notify_walrus_upload_queue_saturated(alert).await
+                    {
+                        tracing::warn!("  sidecar: saturation alert delivery failed: {}", err);
+                    }
+                }
+            }
+        });
+    }
+
+    // Worker 1: MetaTransferJob (legacy — backward compat with existing DB rows)
+    {
+        let worker_state = state.clone();
+        let storage = job_storage.clone();
+        tokio::spawn(async move {
+            loop {
+                let worker = WorkerBuilder::new("meta-transfer")
+                    .data(worker_state.clone())
+                    .backend(storage.clone())
+                    .build_fn(jobs::execute_meta_transfer);
+
+                #[allow(deprecated)]
+                if let Err(e) = Monitor::new().register_with_count(2, worker).run().await {
+                    tracing::error!("Apalis monitor exited: {}", e);
+                }
+                tokio::time::sleep(APALIS_MONITOR_RESTART_DELAY).await;
+            }
+        });
+        tracing::info!("  Apalis: worker 'meta-transfer' spawned (concurrency=2)");
+    }
+
+    // Worker 2: RememberJob (legacy full pipeline)
+    {
+        let worker_state = state.clone();
+        let storage = remember_job_storage.clone();
+        tokio::spawn(async move {
+            loop {
+                let worker = WorkerBuilder::new("remember")
+                    .data(worker_state.clone())
+                    .backend(storage.clone())
+                    .build_fn(jobs::execute_remember);
+
+                #[allow(deprecated)]
+                if let Err(e) = Monitor::new().register_with_count(3, worker).run().await {
+                    tracing::error!("Apalis remember monitor exited: {}", e);
+                }
+                tokio::time::sleep(APALIS_MONITOR_RESTART_DELAY).await;
+            }
+        });
+        tracing::info!("  Apalis: worker 'remember' spawned (concurrency=3)");
+    }
+
+    // Worker 3: BulkRememberJob
+    {
+        let worker_state = state.clone();
+        let storage = bulk_job_storage.clone();
+        tokio::spawn(async move {
+            loop {
+                let worker = WorkerBuilder::new("bulk-remember")
+                    .data(worker_state.clone())
+                    .backend(storage.clone())
+                    .build_fn(execute_bulk_remember);
+
+                #[allow(deprecated)]
+                if let Err(e) = Monitor::new().register_with_count(2, worker).run().await {
+                    tracing::error!("Apalis bulk-remember monitor exited: {}", e);
+                }
+                tokio::time::sleep(APALIS_MONITOR_RESTART_DELAY).await;
+            }
+        });
+        tracing::info!("  Apalis: worker 'bulk-remember' spawned (concurrency=2)");
+    }
+
+    // Worker 4: WalletJob — single worker, single queue.
+    //
+    // Concurrency = WALLET_JOB_CONCURRENCY (default 8). Multiple jobs can be
+    // dispatched simultaneously against the same wallet; transient Sui/RPC
+    // conflicts are classified by `WalletJobError` and retried by Apalis.
+    let wallet_concurrency: usize = std::env::var("WALLET_JOB_CONCURRENCY")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(8);
+    {
+        let worker_state = state.clone();
+        let storage = wallet_storage.clone();
+        tokio::spawn(async move {
+            loop {
+                let worker = WorkerBuilder::new("wallet_jobs")
+                    .data(worker_state.clone())
+                    .backend(storage.clone())
+                    .build_fn(execute_wallet_job);
+
+                #[allow(deprecated)]
+                if let Err(e) = Monitor::new()
+                    .register_with_count(wallet_concurrency, worker)
+                    .run()
+                    .await
+                {
+                    tracing::error!("Apalis wallet worker exited: {}", e);
+                }
+                tokio::time::sleep(APALIS_MONITOR_RESTART_DELAY).await;
+            }
+        });
+        tracing::info!(
+            "  Apalis: worker 'wallet_jobs' spawned (concurrency={})",
+            wallet_concurrency
+        );
+    }
+
+    // Spawn background task for cache eviction
+    let evict_state = state.clone();
+    tokio::spawn(async move {
+        // Run every hour
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(3600));
+        loop {
+            interval.tick().await;
+            if let Err(e) = evict_state.db.evict_expired_delegate_keys().await {
+                tracing::error!("Background eviction failed: {}", e);
+            }
+        }
+    });
+
+    // Spawn background task for orphaned async remember jobs
+    let stale_job_state = state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            if let Err(e) = stale_job_state
+                .db
+                .fail_stale_remember_jobs(STALE_REMEMBER_JOB_AFTER)
+                .await
+            {
+                tracing::error!("Stale remember job sweep failed: {}", e);
+            }
+        }
+    });
+
+    // Build routes
+    // Protected routes (require Ed25519 signature + onchain verification)
+    // 2 MiB covers the largest realistic JSON
+    // body — single remember at 1 MiB plaintext + framing, and bulk remember
+    // batches up to ~1.5 MB. Blocks abusive uploads before auth + rate-limit
+    // middleware see them. Must equal auth::PROTECTED_BODY_LIMIT_BYTES — these
+    // caps are enforced independently and a mismatch silently rejects valid
+    // requests.
+    let protected_routes = Router::new()
+        .route("/api/remember", post(routes::remember))
+        .route(
+            "/api/remember/{job_id}",
+            axum::routing::get(routes::remember_status),
+        )
+        .route(
+            "/api/remember/bulk/status",
+            post(routes::remember_bulk_status),
+        )
+        .route("/api/recall", post(routes::recall))
+        .route("/api/remember/manual", post(routes::remember_manual))
+        .route("/api/recall/manual", post(routes::recall_manual))
+        // Bulk remember — higher body limit (20 items × max 64 KiB each ≈ 1.5 MB)
+        .route(
+            "/api/remember/bulk",
+            post(routes::remember_bulk).layer(DefaultBodyLimit::max(2 * 1024 * 1024)),
+        )
+        .route("/api/analyze", post(routes::analyze))
+        .route("/api/ask", post(routes::ask))
+        .route("/api/restore", post(routes::restore))
+        // admin/harness endpoints — namespace delete + stats.
+        // Mode-blind; owner-scoped via AuthInfo.
+        .route("/api/forget", post(routes::forget))
+        .route("/api/stats", post(routes::stats))
+        // Router::layer runs middleware bottom-to-top (last added runs first).
+        // Keep auth outer so AuthInfo is in request extensions before rate limiting reads it.
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            rate_limit::rate_limit_middleware,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::verify_signature,
+        ))
+        .layer(DefaultBodyLimit::max(auth::PROTECTED_BODY_LIMIT_BYTES));
+
+    // Sponsor routes — body limits + IP rate limit middleware
+    let sponsor_routes = Router::new()
+        .route(
+            "/sponsor",
+            post(routes::sponsor_proxy).layer(DefaultBodyLimit::max(10 * 1024)),
+        )
+        .route(
+            "/sponsor/execute",
+            post(routes::sponsor_execute_proxy).layer(DefaultBodyLimit::max(4 * 1024)),
+        )
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            rate_limit::sponsor_rate_limit_middleware,
+        ));
+
+    // MCP proxy routes — reverse-proxy to the Node sidecar's `/mcp/*` routes.
+    // No signed-request auth here: MCP clients ship a single Bearer at SSE
+    // open and the sidecar parses it as the Ed25519 delegate key. Body limit
+    // is generous on the POST route (JSON-RPC envelopes can carry analyze
+    // text up to a few hundred KiB) and irrelevant on the GET SSE route.
+    let mcp_routes = Router::new()
+        .route("/api/mcp/sse", get(mcp_proxy::sse_proxy))
+        .route(
+            "/api/mcp/messages",
+            post(mcp_proxy::messages_proxy).layer(DefaultBodyLimit::max(2 * 1024 * 1024)),
+        )
+        // Streamable HTTP transport (MCP 2025-06). Single URL that
+        // handles GET (open SSE), POST (JSON-RPC with optional SSE
+        // upgrade), and DELETE (close session). Lets users add the
+        // server via `claude mcp add --transport http memwal <URL>`
+        // without any package install.
+        .route(
+            "/api/mcp",
+            get(mcp_proxy::streamable_proxy)
+                .post(mcp_proxy::streamable_proxy)
+                .delete(mcp_proxy::streamable_proxy)
+                .options(mcp_proxy::streamable_proxy)
+                .layer(DefaultBodyLimit::max(2 * 1024 * 1024)),
+        );
+
+    // Public routes
+    // /health and /config accept no body — cap at 16 KiB to reject
+    // oversized unauthenticated requests before they reach any handler.
+    // /config exposes non-secret deployment parameters (packageId,
+    // network, sui_rpc_url) so the SDK can build SEAL SessionKey without
+    // the user adding packageId to MemWalConfig.
+    let public_routes = Router::new()
+        .route(
+            "/health",
+            get(routes::health).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/version",
+            get(routes::version).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/config",
+            get(routes::get_config).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/metrics",
+            get(observability::metrics).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .merge(sponsor_routes)
+        .merge(mcp_routes);
+
+    // CORS — restrict to configured origins.
+    // Safe default is deny-all (no Access-Control-Allow-Origin header returned),
+    // which blocks browser cross-origin requests. Set ALLOWED_ORIGINS to allow
+    // specific origins (e.g. "http://localhost:3000,https://memwal.ai").
+    let cors = {
+        let origins: Vec<HeaderValue> = config
+            .allowed_origins
+            .split(',')
+            .filter_map(|s| {
+                let s = s.trim();
+                if s.is_empty() {
+                    return None;
+                }
+                s.parse::<HeaderValue>().ok()
+            })
+            .collect();
+
+        if origins.is_empty() {
+            tracing::warn!("ALLOWED_ORIGINS not set — CORS is deny-all (browsers blocked). Set ALLOWED_ORIGINS for frontend access.");
+            CorsLayer::new() // deny-all: no Allow-Origin header emitted
+        } else {
+            tracing::info!("  CORS origins: {}", config.allowed_origins);
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::list(origins))
+                .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+                .allow_headers([
+                    header::CONTENT_TYPE,
+                    header::AUTHORIZATION,
+                    // SDK auth headers (required for Ed25519 signed requests)
+                    "x-public-key".parse::<header::HeaderName>().unwrap(),
+                    "x-signature".parse::<header::HeaderName>().unwrap(),
+                    "x-timestamp".parse::<header::HeaderName>().unwrap(),
+                    "x-nonce".parse::<header::HeaderName>().unwrap(),
+                    "x-account-id".parse::<header::HeaderName>().unwrap(),
+                    "x-delegate-key".parse::<header::HeaderName>().unwrap(),
+                    "x-request-id".parse::<header::HeaderName>().unwrap(),
+                    "x-correlation-id".parse::<header::HeaderName>().unwrap(),
+                    // SessionKey envelope replacing x-delegate-key
+                    "x-seal-session".parse::<header::HeaderName>().unwrap(),
+                    // MCP headers — caller's Walrus Memory account id + optional default namespace.
+                    "x-memwal-account-id".parse::<header::HeaderName>().unwrap(),
+                    "x-memwal-namespace".parse::<header::HeaderName>().unwrap(),
+                ])
+        }
+    };
+
+    let app = Router::new()
+        .merge(protected_routes)
+        .merge(public_routes)
+        .with_state(state)
+        .layer(cors)
+        .layer(middleware::from_fn(
+            observability::request_context_middleware,
+        ));
+
+    // Start server. Bind the IPv6 unspecified address (dual-stack: still
+    // accepts IPv4 via mapped addresses) so the relayer is reachable over
+    // Railway's private network, which is IPv6-only — e.g. for the
+    // observability collector scraping /metrics at relayer.railway.internal.
+    let addr = format!("[::]:{}", config.port);
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind address");
+
+    tracing::info!("memwal server listening on {}", addr);
+    tracing::info!("  health: http://localhost:{}/health", config.port);
+    tracing::info!("  metrics: http://localhost:{}/metrics", config.port);
+    tracing::info!(
+        "  api:    http://localhost:{}/api/{{remember,recall,analyze}}",
+        config.port
+    );
+
+    // Graceful shutdown: kill sidecar when server stops
+    let shutdown = async {
+        tokio::signal::ctrl_c().await.ok();
+        tracing::info!("shutting down...");
+    };
+
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown)
+    .await
+    .expect("Server failed");
+
+    // Cleanup sidecar after shutdown
+    sidecar_child.kill().await.ok();
+    tracing::info!("sidecar stopped");
+    telemetry.shutdown();
+}

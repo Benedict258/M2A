@@ -1,0 +1,10 @@
+# Angular
+/dist
+/node_modules
+/.angular
+*.log
+
+# Environment
+.env
+.env.local
+.env.prod

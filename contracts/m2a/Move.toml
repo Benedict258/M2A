@@ -1,0 +1,10 @@
+[package]
+name = "m2a"
+edition = "2024"
+
+[dependencies]
+
+[addresses]
+m2a = "0x0"
+std = "0x1"
+sui = "0x2"
