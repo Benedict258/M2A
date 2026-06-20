@@ -26,8 +26,11 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
     [view],
   );
 
+  const isDragging = useRef(false);
+
   const onCanvasPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget) return;
+    if (isDragging.current) return;
     setPanning(true);
     panStart.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
     (e.target as Element).setPointerCapture(e.pointerId);
@@ -108,8 +111,9 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
       onPointerUp={onCanvasPointerUp}
       onPointerLeave={onCanvasPointerUp}
       onWheel={onWheel}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDropNode}
+      onDragOver={(e) => { e.preventDefault(); isDragging.current = true; }}
+      onDrop={(e) => { isDragging.current = false; onDropNode(e); }}
+      onDragLeave={() => { isDragging.current = false; }}
       className="canvas-grid relative flex-1 overflow-hidden bg-surface-dim"
       style={{ cursor: panning ? "grabbing" : "default" }}
     >
