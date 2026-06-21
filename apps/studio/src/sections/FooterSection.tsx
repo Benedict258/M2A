@@ -31,7 +31,7 @@ export default function FooterSection() {
               </span>
             </a>
             <p className="mt-3 text-sm text-slate-500 leading-relaxed max-w-xs">
-              Persistent, verifiable memory for AI agents. Powered by Walrus, anchored on Sui.
+              Automation platform. Verifiable datasets. Built on Sui, stored on Walrus.
             </p>
           </div>
 

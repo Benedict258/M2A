@@ -6,9 +6,9 @@ export default function CTASection() {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
 
         <div className="relative z-10">
-          <h2 className="text-headline-lg">Your agents deserve a memory.</h2>
+          <h2 className="text-headline-lg">Start building automations that generate verifiable data.</h2>
           <p className="mt-4 text-muted-foreground max-w-md mx-auto">
-            Stop burning tokens on repetition. Give your agents the persistent, verifiable memory they were born to have.
+            Build automations on a visual canvas. Every run produces a verifiable, privacy-safe dataset — automatically.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">

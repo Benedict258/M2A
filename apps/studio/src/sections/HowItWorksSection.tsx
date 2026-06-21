@@ -1,48 +1,25 @@
 import { useState } from 'react';
 
 const TABS = [
-  { id: 'setup', label: '1. Setup', code: `import { Buiry } from "buiry";
-import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
+  { id: 'setup', label: '1. Build', code: `// Drag 48 node types onto a visual canvas
+// Connect nodes to define your automation
+// Configure each node: inputs, transforms, LLM calls
 
-const keypair = Ed25519Keypair.fromSecretKey(
-  process.env.SUI_PRIVATE_KEY!
-);
+No orchestration code required.
+Just nodes and edges.` },
+  { id: 'remember', label: '2. Run', code: `// Execute the workflow
+// SSE streaming: watch every step in real-time
+// Parallel agent dispatch across node branches
 
-const buiry = new Buiry({
-  namespace: "agent-memory-store",
-  signer: keypair.getKeypair(),
-  network: "testnet",
-  wallet: new AgentWallet({ keypair }),
-});` },
-  { id: 'remember', label: '2. Remember', code: `const memory = buiry.memory("deep-research-42");
+Run complete. Output generated.
+Automatically creating dataset...` },
+  { id: 'recall', label: '3. Dataset', code: `// Every run produces a verifiable dataset
+// PII auto-redacted. Privacy score calculated.
+// Published to Walrus as a blob with Sui proof
 
-const entry = await memory.remember({
-  key: "findings/defi-yield-2026",
-  value: {
-    topic: "DeFi yield optimization",
-    sources: researcherTool.citations,
-    confidence: 0.94,
-    timestamp: Date.now(),
-  },
-  tags: ["defi", "research", "yield"],
-  ttl: 90 * 24 * 60 * 60, // 90 days
-});
-
-console.log(entry.blobId);
-// walrus://3BxGhz...f8Kp` },
-  { id: 'recall', label: '3. Recall', code: `const memory = buiry.memory("deep-research-42");
-
-const results = await memory.recall({
-  key: "findings/defi-yield-2026",
-  verify: true, // check Sui transaction proof
-});
-
-if (results.verified) {
-  console.log(\`Recalled: \${results.data.topic}\`);
-  console.log(\`Confidence: \${results.data.confidence}\`);
-  console.log(\`Blob: \${results.blobId}\`);
-  console.log(\`Sui tx: \${results.proof}\`);
-}` },
+Dataset verified. Privacy score: 100
+Blob ID: walrus://3BxGhz...f8Kp
+Sui tx: 0xabc123...def456` },
 ];
 
 export default function HowItWorksSection() {
@@ -54,9 +31,9 @@ export default function HowItWorksSection() {
     <section id="how-it-works" className="border-b border-border bg-surface-low">
       <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
         <div className="text-center">
-          <h2 className="text-headline-lg">Zero to persistent agent memory in under 5 minutes.</h2>
+          <h2 className="text-headline-lg">Build a workflow. Run it. Get a verifiable dataset.</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            Three API calls. One SDK. Your agents now have memory that survives any session.
+            Three steps. Build, run, and every execution produces a verifiable, privacy-safe dataset.
           </p>
         </div>
 

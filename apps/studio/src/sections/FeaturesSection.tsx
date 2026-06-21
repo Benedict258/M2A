@@ -56,10 +56,10 @@ export default function FeaturesSection() {
       <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
         <div className="text-center">
           <h2 className="text-headline-lg">
-            <span className="text-primary">48</span> node types. One canvas.
+            <span className="text-primary">48</span> node types. One canvas. Build any automation.
           </h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            Drag, connect, configure. Build agent workflows without writing orchestration code.
+            Drag, connect, configure. No orchestration code. Just nodes and edges.
           </p>
         </div>
 

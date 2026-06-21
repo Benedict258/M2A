@@ -1,7 +1,7 @@
 const STATS = [
   { value: '48', label: 'Node Types', desc: 'Orchestrate any workflow' },
-  { value: '6', label: 'Move Modules', desc: 'On-chain memory contracts' },
   { value: '14', label: 'Protocol Integrations', desc: 'Sui ecosystem primitives' },
+  { value: '6', label: 'Move Modules', desc: 'On-chain memory contracts' },
   { value: '4', label: 'LLM Providers', desc: 'Groq, Llama, OpenAI, Anthropic' },
 ];
 

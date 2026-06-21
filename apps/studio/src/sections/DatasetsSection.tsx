@@ -1,11 +1,11 @@
 export default function DatasetsSection() {
   return (
-    <section className="border-b border-border">
+    <section id="datasets" className="border-b border-border">
       <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
         <div className="text-center">
-          <h2 className="text-headline-lg">Every agent interaction is a dataset.</h2>
+          <h2 className="text-headline-lg">Every automation you run produces a verifiable dataset.</h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            Privacy-preserving pipeline: capture, redact, verify, and publish to Walrus.
+            Privacy-preserving pipeline: capture, redact, verify, and publish to Walrus — automatically, on every run.
           </p>
         </div>
 

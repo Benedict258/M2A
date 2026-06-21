@@ -63,6 +63,7 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
       <div className="flex items-center gap-2">
         <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 text-primary">
           <img src="/M2ALightLogo.png" alt="M2A" className="h-14 w-auto" />
+        </div>
       </div>
 
       <span className="mx-2 h-5 w-px bg-border" />

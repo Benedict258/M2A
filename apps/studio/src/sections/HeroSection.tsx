@@ -4,12 +4,12 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
       <div className="mx-auto max-w-[1400px] px-6 pt-32 pb-20 md:pt-40 md:pb-28 text-center relative z-10">
         <h1 className="mt-6 text-display-lg md:text-[64px] md:leading-[68px] tracking-tight">
-          Your agents forget everything<br />
-          between sessions. <span className="text-primary">M2A remembers.</span>
+          Build automations that generate<br />
+          verifiable data every time they run. <span className="text-primary">On-chain.</span>
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-body-lg text-muted-foreground">
-          Persistent, verifiable memory for AI agents — powered by Walrus, anchored on Sui.
+          Visual workflow builder on Sui, Walrus, and MemWal. Drag nodes, connect them, run it — and every execution produces a verifiable, privacy-safe dataset stored on Walrus.
         </p>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
