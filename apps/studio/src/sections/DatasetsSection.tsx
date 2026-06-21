@@ -22,7 +22,7 @@ export default function DatasetsSection() {
                 Before: Raw Output
               </h3>
               <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
-                Agent responses contain PII, wallet addresses, personal data — all exposed, all unverifiable.
+                Agent responses contain PII, wallet addresses, personal data:all exposed, all unverifiable.
               </p>
             </div>
           </div>

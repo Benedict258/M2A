@@ -16,15 +16,15 @@ const CARDS = [...NODE_CATEGORIES, ...NODE_CATEGORIES, ...NODE_CATEGORIES];
 function CardItem({ label, items }: { label: string; items: string[] }) {
   return (
     <div
-      className="shrink-0 w-[220px] h-[220px] rounded-3xl p-5 flex flex-col bg-card border border-border"
+      className="shrink-0 w-[220px] h-[200px] rounded-3xl p-4 flex flex-col bg-card border border-border"
     >
-      <h3 className="text-lg font-bold text-white mb-3">{label}</h3>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 flex-1 overflow-hidden">
+      <h3 className="text-lg font-bold text-primary mb-2">{label}</h3>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 flex-1 overflow-hidden">
         {items.map((item) => (
-          <p key={item} className="text-xs text-slate-400 truncate">{item}</p>
+          <p key={item} className="text-xs text-black dark:text-slate-400 truncate">{item}</p>
         ))}
       </div>
-      <span className="text-[10px] font-bold text-primary uppercase tracking-wider mt-auto">
+      <span className="text-[10px] font-bold text-primary uppercase tracking-wider mt-2">
         {label === 'DeFi' ? '12' : label === 'Web2' ? '7' : label === 'Triggers' ? '6' : label === 'Blockchain' ? '5' : label === 'AI Agents' ? '4' : label === 'Logic/Data' ? '7' : label === 'Oracles' ? '2' : label === 'Bridge' ? '2' : label === 'NFT' ? '3' : '1'} nodes
       </span>
     </div>

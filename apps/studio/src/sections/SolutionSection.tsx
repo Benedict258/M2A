@@ -25,7 +25,7 @@ export default function SolutionSection() {
                 Workflow<br />Engine
               </h3>
               <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
-                Visual canvas, 48 node types. Drag-connect-execute. Like n8n but on-chain.
+                Visual canvas, 48 node types. Drag-connect-execute. On-chain by default.
               </p>
             </div>
           </div>
@@ -42,7 +42,7 @@ export default function SolutionSection() {
                 Dataset<br />Generation
               </h3>
               <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
-                Every automation run produces a verifiable, privacy-safe dataset, automatically. This is what n8n doesn't do.
+                Every automation run produces a verifiable, privacy-safe dataset, automatically. This is what M2A delivers.
               </p>
             </div>
           </div>

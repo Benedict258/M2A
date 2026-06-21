@@ -23,8 +23,8 @@ export default function TechStackSection() {
                 key={item.label}
                 className="flex items-center justify-between rounded-2xl p-6 transition-colors"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.06) 0%, #0f1117 40%, rgba(139,92,246,0.03) 100%)',
-                  border: '1px solid rgba(139, 92, 246, 0.12)',
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, #111318 45%, rgba(99,102,241,0.08) 100%)',
+                  border: '1px solid rgba(139, 92, 246, 0.15)',
                 }}
               >
                 <span className="text-lg font-bold text-white tracking-wide">

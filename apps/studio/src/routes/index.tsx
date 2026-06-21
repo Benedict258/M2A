@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LandingNavbar } from "@/components/landing-navbar";
 import HeroSection from "@/sections/HeroSection";
+import AutomationSection from "@/sections/AutomationSection";
 import ProblemSection from "@/sections/ProblemSection";
 import SolutionSection from "@/sections/SolutionSection";
 import FeaturesSection from "@/sections/FeaturesSection";
@@ -29,6 +30,7 @@ function LandingPage() {
     <main className="min-h-screen bg-surface text-foreground">
       <LandingNavbar />
       <HeroSection />
+      <AutomationSection />
       <ProblemSection />
       <SolutionSection />
       <FeaturesSection />
