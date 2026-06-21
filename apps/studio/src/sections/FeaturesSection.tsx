@@ -16,11 +16,7 @@ const CARDS = [...NODE_CATEGORIES, ...NODE_CATEGORIES, ...NODE_CATEGORIES];
 function CardItem({ label, items }: { label: string; items: string[] }) {
   return (
     <div
-      className="shrink-0 w-[220px] h-[220px] rounded-3xl p-5 flex flex-col"
-      style={{
-        background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, #111318 50%, rgba(139,92,246,0.04) 100%)',
-        border: '1px solid rgba(139, 92, 246, 0.15)',
-      }}
+      className="shrink-0 w-[220px] h-[220px] rounded-3xl p-5 flex flex-col bg-card border border-border"
     >
       <h3 className="text-lg font-bold text-white mb-3">{label}</h3>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 flex-1 overflow-hidden">

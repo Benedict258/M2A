@@ -38,7 +38,7 @@ export function LandingNavbar() {
     <header className="fixed top-0 z-40 w-full border-b border-border bg-surface/95 backdrop-blur">
       <div className="flex h-16 max-w-[1400px] items-center justify-between gap-4 px-6">
         <a href="#" className="flex items-center gap-2.5 shrink-0">
-          <img src="/M2ALightLogo.png" alt="M2A" className="h-8 w-auto" />
+          <img src={theme === 'dark' ? '/M2ADarkLogo.png' : '/M2ALightLogo.png'} alt="M2A" className="h-8 w-auto" />
         </a>
 
         <nav className="hidden md:flex items-center gap-1">
