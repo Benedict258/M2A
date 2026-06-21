@@ -15,6 +15,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "../lib/theme";
 import { WorkflowProvider } from "../lib/workflow-context";
 import { SuiProvider } from "../lib/sui-provider";
+import { DAppKitProvider } from "@mysten/dapp-kit-react";
+import { dAppKit } from "../lib/dapp-kit";
 
 function NotFoundComponent() {
   return (
@@ -82,9 +84,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Buiry — M2A Studio" },
-      { name: "description", content: "Visual workflow builder for AI agents and DeFi protocols on Sui." },
+      {
+        name: "description",
+        content: "Visual workflow builder for AI agents and DeFi protocols on Sui.",
+      },
       { property: "og:title", content: "Buiry — M2A Studio" },
-      { property: "og:description", content: "Visual workflow builder for AI agents and DeFi protocols on Sui." },
+      {
+        property: "og:description",
+        content: "Visual workflow builder for AI agents and DeFi protocols on Sui.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -129,10 +137,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <SuiProvider>
-          <WorkflowProvider>
-            <Outlet />
-            <Toaster richColors position="bottom-right" />
-          </WorkflowProvider>
+          <DAppKitProvider dAppKit={dAppKit}>
+            <WorkflowProvider>
+              <Outlet />
+              <Toaster richColors position="bottom-right" />
+            </WorkflowProvider>
+          </DAppKitProvider>
         </SuiProvider>
       </ThemeProvider>
     </QueryClientProvider>
