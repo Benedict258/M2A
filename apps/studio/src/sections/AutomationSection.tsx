@@ -61,7 +61,7 @@ export default function AutomationSection() {
 
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           <div className="text-center md:text-left">
-            <span className="inline-block text-3xl font-bold text-primary mb-2">1</span>
+            <span className="inline-block text-3xl font-bold text-black dark:text-white mb-2">1</span>
             <h3 className="text-lg font-bold text-black dark:text-white mb-2">Drag</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
               Drop a node onto the canvas:an AI agent, a Sui protocol connector, a trigger, a data source.
