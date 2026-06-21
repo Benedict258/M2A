@@ -4,7 +4,7 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
       <div className="mx-auto max-w-[1400px] px-6 pt-32 pb-20 md:pt-40 md:pb-28 text-center relative z-10">
         <h1 className="mt-6 text-display-lg md:text-[64px] md:leading-[68px] tracking-tight">
-          Build <span className="text-primary">automations</span> on the Sui stack<br />and its protocols. <span className="text-primary">Every node remembers.</span><br />Every run generates <span className="text-primary">verifiable data</span>.
+          Build <span className="text-primary">Automations</span> on the Sui stack<br />and its protocols. <span className="text-primary">Every node remembers.</span><br />Every run generates <span className="text-primary">Verifiable data</span>.
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-body-lg text-muted-foreground">
