@@ -9,13 +9,13 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { DAppKitProvider } from "@mysten/dapp-kit-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "../lib/theme";
 import { WorkflowProvider } from "../lib/workflow-context";
 import { SuiProvider } from "../lib/sui-provider";
-import { DAppKitProvider } from "@mysten/dapp-kit-react";
 import { dAppKit } from "../lib/dapp-kit";
 
 function NotFoundComponent() {
@@ -84,15 +84,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Buiry — M2A Studio" },
-      {
-        name: "description",
-        content: "Visual workflow builder for AI agents and DeFi protocols on Sui.",
-      },
+      { name: "description", content: "Visual workflow builder for AI agents and DeFi protocols on Sui." },
       { property: "og:title", content: "Buiry — M2A Studio" },
-      {
-        property: "og:description",
-        content: "Visual workflow builder for AI agents and DeFi protocols on Sui.",
-      },
+      { property: "og:description", content: "Visual workflow builder for AI agents and DeFi protocols on Sui." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -106,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
       },
     ],
   }),
@@ -118,7 +112,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light">
       <head>
         <HeadContent />
       </head>
