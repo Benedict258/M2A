@@ -1,71 +1,44 @@
 export default function DatasetsSection() {
   return (
-    <section id="datasets" className="border-b border-border">
-      <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
-        <div className="text-center">
-          <h2 className="text-headline-lg">Every automation you run produces a verifiable dataset.</h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
+    <section id="datasets" className="bg-surface-low">
+      <div className="mx-auto max-w-[1200px] px-6 py-24 md:py-36">
+        <div className="text-center mb-16">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-[42px] font-bold tracking-tight text-black dark:text-white leading-tight">
+            Every automation you run<br />
+            <span className="text-primary">produces a verifiable dataset.</span>
+          </h2>
+          <p className="mt-6 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Privacy-preserving pipeline: capture, redact, verify, and publish to Walrus, automatically, on every run.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-500 via-slate-500 to-transparent" />
-            <p className="text-label-bold text-slate-400">Before: Raw Output</p>
-            <div className="mt-4 rounded-lg border border-border bg-surface px-4 py-3 space-y-2">
-              <p className="text-mono text-[11px] text-slate-400 leading-relaxed">
-                {'{'}
-                <br />
-                <span className="text-slate-500">&nbsp;&nbsp;"user": "alice@example.com",</span>
-                <br />
-                <span className="text-slate-500">&nbsp;&nbsp;"ssn": "123-45-6789",</span>
-                <br />
-                <span className="text-slate-500">&nbsp;&nbsp;"wallet": "0xabc...def",</span>
-                <br />
-                &nbsp;&nbsp;"query": "best yield strategies",<br />
-                &nbsp;&nbsp;"response": "Based on analysis..."<br />
-                {'}'}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="rounded-3xl bg-[#111318] p-10 md:p-12 flex flex-col justify-between min-h-[320px]">
+            <div>
+              <svg className="w-10 h-10 text-slate-400 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
+                Before: Raw Output
+              </h3>
+              <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
+                Agent responses contain PII, wallet addresses, personal data — all exposed, all unverifiable.
               </p>
-            </div>
-            <div className="mt-4 flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold text-slate-400">PII Detected</span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold text-slate-400">3 fields</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary to-transparent" />
-            <p className="text-label-bold text-primary">After: Clean Dataset</p>
-            <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
-              <p className="text-mono text-[11px] text-slate-400 leading-relaxed">
-                {'{'}
-                <br />
-                &nbsp;&nbsp;"user": <span className="text-primary">"[REDACTED]"</span>,<br />
-                &nbsp;&nbsp;"query": "best yield strategies",<br />
-                &nbsp;&nbsp;"response": "Based on analysis...",<br />
-                &nbsp;&nbsp;"aggregate": {'{'}<br />
-                &nbsp;&nbsp;&nbsp;&nbsp;"topic": "DeFi yield",<br />
-                &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-primary">"privacy_score": 100</span><br />
-                &nbsp;&nbsp;{'}'}<br />
-                {'}'}
+          <div className="rounded-3xl bg-[#111318] p-10 md:p-12 flex flex-col justify-between min-h-[320px]">
+            <div>
+              <svg className="w-10 h-10 text-primary mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.135-.832 2.136-2.035 2.14a25.998 25.998 0 01-4.654 0 2.003 2.003 0 01-2.035-2.14m0 0V5.25A2.25 2.25 0 0115.75 3h2.25A2.25 2.25 0 0121 5.25v6.75a2.25 2.25 0 01-2.035 2.14 25.998 25.998 0 01-4.654 0 2.003 2.003 0 01-2.035-2.14V5.25A2.25 2.25 0 0113.5 3h2.25A2.25 2.25 0 0118 5.25v6.75a2.003 2.003 0 01-2.035 2.14 25.998 25.998 0 01-4.654 0c-1.203-.004-2.337.508-2.835 1.372m0 0V5.25A2.25 2.25 0 0113.5 3h2.25A2.25 2.25 0 0118 5.25v6.75" />
+              </svg>
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-primary leading-tight">
+                After: Clean Dataset
+              </h3>
+              <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
+                Every run produces a verifiable, privacy-safe dataset stored on Walrus. Data compounds across runs, smarter over time.
               </p>
             </div>
-            <div className="mt-4 flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Privacy Score: 100</span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Walrus Blob</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 flex justify-center">
-          <div className="flex items-center gap-6 rounded-lg border border-border bg-card px-6 py-3">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm text-slate-400">Privacy Engine Active</span>
-            </div>
-            <span className="text-sm text-slate-600">|</span>
-            <span className="text-label-bold text-primary">100% PII Detection Rate</span>
           </div>
         </div>
       </div>

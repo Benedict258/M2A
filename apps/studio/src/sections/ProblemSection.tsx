@@ -1,71 +1,43 @@
 export default function ProblemSection() {
   return (
-    <section className="border-b border-border bg-surface-low">
-      <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
-        <div className="text-center">
-          <h2 className="text-headline-lg">Automation platforms today run workflows. <span className="text-primary">Then the value disappears.</span></h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            No verifiable record. No reusable data. Nothing compounds. Every run starts from zero.
-          </p>
+    <section id="problem" className="bg-surface-low">
+      <div className="mx-auto max-w-[1200px] px-6 py-24 md:py-36">
+        <div className="text-center mb-16">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-[42px] font-bold tracking-tight leading-tight text-black dark:text-white">
+            Automation platforms today run workflows.<br />
+            <span className="text-primary">Then the value disappears.</span>
+          </h2>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-8 relative overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-500 via-slate-500 to-transparent" />
-              <p className="text-label-bold text-slate-400">Without M2A</p>
-            <h3 className="mt-6 text-headline-md text-slate-300">Workflow runs. Value disappears.</h3>
-            <div className="mt-6 space-y-4">
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">1</span>
-                <p className="text-sm text-slate-400">Execution produces no permanent output</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">2</span>
-                <p className="text-sm text-slate-400">No way to inspect or verify results</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">3</span>
-                <p className="text-sm text-slate-400">Data evaporates, nothing compounds</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">4</span>
-                <p className="text-sm text-slate-400">Every run starts from zero</p>
-              </div>
-            </div>
-            <div className="mt-8 rounded-lg border border-border bg-surface px-4 py-3">
-              <p className="text-mono text-slate-500">
-                <span className="text-slate-400">{'>'} Run complete.</span> All output<br />
-                <span className="text-slate-400">{'>'} discarded.</span> No dataset saved.
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="rounded-3xl bg-[#111318] p-10 md:p-12 flex flex-col justify-between min-h-[320px]">
+            <div>
+              <svg className="w-10 h-10 text-slate-400 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <line x1="12" y1="12" x2="20" y2="20" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
+                Without M2A
+              </h3>
+              <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
+                Workflow runs. Value disappears. No verifiable record. No reusable data.
+                Every run starts from zero.
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-8 relative overflow-hidden group">
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary to-transparent" />
-              <p className="text-label-bold text-primary">With M2A</p>
-            <h3 className="mt-6 text-headline-md text-slate-300">Every run. A dataset.</h3>
-            <div className="mt-6 space-y-4">
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">1</span>
-                <p className="text-sm text-slate-400">Execution automatically generates a dataset</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">2</span>
-                <p className="text-sm text-slate-400">Verifiable output stored on Walrus</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">3</span>
-                <p className="text-sm text-slate-400">Privacy-safe: PII redacted before storage</p>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">4</span>
-                <p className="text-sm text-slate-400">Data compounds across runs, smarter over time</p>
-              </div>
-            </div>
-              <div className="mt-8 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                <p className="text-mono text-slate-400">
-                  <span className="text-primary">{'>'} Run complete.</span> Dataset<br />
-                  <span className="text-primary">{'>'} verified.</span> Privacy score: 100.
+          <div className="rounded-3xl bg-[#111318] p-10 md:p-12 flex flex-col justify-between min-h-[320px]">
+            <div>
+              <svg className="w-10 h-10 text-primary mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9.75m0 3h.008" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-primary leading-tight">
+                Every run.<br />A dataset.
+              </h3>
+              <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
+                Every automation run produces a verifiable, privacy-safe dataset
+                stored on Walrus. Data compounds across runs, smarter over time.
               </p>
             </div>
           </div>
