@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Transaction } from "@mysten/sui/transactions";
-import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
-// Sui SDK imports for tx building and signing
 import { Check, Loader2, Search, X, ExternalLink, Wallet, ArrowRight, AlertCircle } from "lucide-react";
 import { useWorkflow, type Agent, type CanvasNode, type Connection } from "@/lib/workflow-context";
 import { api } from "@/lib/api";
-import { useSui } from "@/lib/sui-provider";
 import { useWallets, useDAppKit, useCurrentAccount } from "@mysten/dapp-kit-react";
+import { CurrentAccountSigner } from "@mysten/dapp-kit-core";
 import { notify } from "@/lib/toast";
+import { startAgentZkLogin, getAgentWalletSession, clearAgentWalletSession } from "@/lib/agent-wallet";
 
 /* ------------ Shell ------------ */
 function Shell({ open, onClose, children, size = "md" }: { open: boolean; onClose: () => void; children: React.ReactNode; size?: "md" | "lg" | "xl" }) {
@@ -148,47 +147,24 @@ export function TemplateMarketplace({ open, onClose }: { open: boolean; onClose:
 const PROTOCOLS = ["Aftermath", "Navi", "Cetus", "Bluefin", "Suilend"];
 const TOOLS = ["Walrus Storage", "Sui RPC", "Price Feeds", "AI Memory"];
 
-const WALNUT_PACKAGE = import.meta.env.VITE_M2A_PACKAGE_ID;
-const WALNUT_REGISTRY = import.meta.env.VITE_M2A_REGISTRY_ID;
-
-async function buildAndSignCreateAgentTx(
-  walletAddress: string,
-  ownerAddress: string,
-  budgetCap: number,
-): Promise<{ txBytes: string; txSignature: string }> {
-  const stored = localStorage.getItem('zklogin_ephemeral');
-  if (!stored) throw new Error('No ephemeral key found. Please sign in again.');
-  const { secretKey } = JSON.parse(stored);
-  const keypair = Ed25519Keypair.fromSecretKey(secretKey);
-
-  const tx = new Transaction();
-  tx.moveCall({
-    target: `${WALNUT_PACKAGE}::agent::register_agent`,
-    arguments: [
-      tx.object(WALNUT_REGISTRY),
-      tx.pure.address(walletAddress),
-      tx.pure.address(ownerAddress),
-      tx.pure.u64(BigInt(budgetCap * 1_000_000_000)),
-    ],
-  });
-
-  const { bytes, signature } = await tx.sign({ signer: keypair });
-  return { txBytes: bytes, txSignature: signature };
-}
+const M2A_PACKAGE = import.meta.env.VITE_M2A_PACKAGE_ID;
+const M2A_REGISTRY = import.meta.env.VITE_M2A_REGISTRY_ID;
 
 export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { dispatch } = useWorkflow();
   const walletAccount = useCurrentAccount();
-  const { isConnected: zkConnected, authMethod, startZkLogin, address: zkAddress } = useSui();
-  const isConnected = !!walletAccount || zkConnected;
-  const address = walletAccount?.address ?? zkAddress;
-  const [step, setStep] = useState<"form" | "auth" | "signing" | "done">("form");
+  const dAppKit = useDAppKit();
+  const [step, setStep] = useState<"form" | "zklogin" | "signing" | "done">("form");
   const [name, setName] = useState("");
   const [budget, setBudget] = useState(50);
   const [protocols, setProtocols] = useState<string[]>([]);
   const [tools, setTools] = useState<string[]>([]);
   const [txDigest, setTxDigest] = useState("");
   const [txError, setTxError] = useState("");
+
+  const agentWallet = getAgentWalletSession();
+  const ownerAddress = walletAccount?.address;
+  const isWalletConnected = !!walletAccount;
 
   const reset = () => {
     setStep("form");
@@ -198,23 +174,46 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
 
   const next = async () => {
     setTxError("");
-    if (!isConnected) {
-      setStep("auth");
-      startZkLogin();
+
+    if (!isWalletConnected) {
+      notify.error('Connect your wallet first to create an agent');
       return;
     }
+
+    if (!agentWallet) {
+      setStep("zklogin");
+      await startAgentZkLogin();
+      return;
+    }
+
     setStep("signing");
     try {
-      const { txBytes, txSignature } = await buildAndSignCreateAgentTx(address!, address!, budget);
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${M2A_PACKAGE}::m2a::create_agent`,
+        arguments: [
+          tx.object(M2A_REGISTRY),
+          tx.pure.address(agentWallet.address),
+          tx.pure.u64(BigInt(budget * 1_000_000_000)),
+          tx.pure.vector('string', protocols),
+          tx.pure.vector('string', tools),
+          tx.pure.u64(0n),
+        ],
+      });
+      tx.setSender(ownerAddress!);
+
+      const signer = new CurrentAccountSigner(dAppKit);
+      const { bytes, signature } = await tx.sign({ signer });
+
       const result = await api.registerAgent({
         name,
-        walletAddress: address,
-        ownerAddress: address,
+        walletAddress: agentWallet.address,
+        ownerAddress: ownerAddress!,
         budgetCap: budget,
         protocols,
         tools,
-        txBytes,
-        signatures: [txSignature],
+        txBytes: bytes,
+        signatures: [signature],
       });
       const agent: Agent = {
         id: result.id || 'a_' + Date.now(),
@@ -222,7 +221,7 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
         status: result.status === "active" ? "active" : "inactive",
         budgetUsed: result.budgetUsed ?? 0,
         budgetCap: result.budgetCap ?? budget,
-        address: result.address || address || "",
+        address: result.address || agentWallet.address || "",
       };
       dispatch({ type: "add_agent", agent });
       setTxDigest(result.txDigest || '');
@@ -236,13 +235,13 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
     }
   };
 
-  const stepIdx = ["form", "auth", "signing", "done"].indexOf(step);
+  const stepIdx = ["form", "zklogin", "signing", "done"].indexOf(step);
 
   return (
     <Shell open={open} onClose={reset} size="lg">
       <div className="border-b border-border px-6 py-5">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold uppercase tracking-wider text-primary">Step {stepIdx + 1} of 4: {step === "form" ? "Configuration" : step === "auth" ? "Authentication" : step === "signing" ? "Signing" : "Complete"}</span>
+          <span className="font-bold uppercase tracking-wider text-primary">Step {stepIdx + 1} of 4: {step === "form" ? "Configuration" : step === "zklogin" ? "Agent Wallet" : step === "signing" ? "Signing" : "Complete"}</span>
           <span className="text-muted-foreground uppercase tracking-wider font-bold">General Identity</span>
         </div>
         <div className="mt-3 flex gap-1.5">
@@ -284,29 +283,29 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
               <Pills options={TOOLS} selected={tools} onChange={setTools} />
             </Field>
             <div className="rounded-md border border-border bg-surface-container p-3 text-xs text-muted-foreground">
-              {authMethod === "zklogin" ? (
-                <>Agent wallet: <span className="font-mono text-foreground">{address}</span> (same as your Google-authenticated address)</>
-              ) : isConnected ? (
-                <>Agent wallet: <span className="font-mono text-foreground">{address}</span></>
+              {agentWallet ? (
+                <>Agent wallet: <span className="font-mono text-foreground">{agentWallet.address.slice(0, 6)}...{agentWallet.address.slice(-4)}</span></>
+              ) : isWalletConnected ? (
+                <>Agent wallet not yet created. Google sign-in will establish the agent's on-chain identity.</>
               ) : (
-                <>You'll authenticate with Google to create the agent wallet address.</>
+                <>Connect your Sui wallet first, then set up the agent wallet with Google.</>
               )}
             </div>
           </div>
         )}
 
-        {step === "auth" && (
+        {step === "zklogin" && (
           <Center>
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-sm font-medium">Complete Google sign-in in the popup…</p>
-            <p className="mt-1 text-xs text-muted-foreground">zkLogin establishes the agent wallet keypair on Sui.</p>
+            <p className="mt-4 text-sm font-medium">Creating agent wallet with Google…</p>
+            <p className="mt-1 text-xs text-muted-foreground">zkLogin establishes the agent's keypair on Sui.</p>
           </Center>
         )}
         {step === "signing" && (
           <Center>
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
             <p className="mt-4 text-sm font-medium">Sign the transaction in your wallet…</p>
-            <p className="mt-1 text-xs text-muted-foreground">This funds the agent and writes its policy on-chain.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Your wallet registers the agent policy on-chain.</p>
             {txError && (
               <>
                 <p className="mt-4 text-sm text-red-400">{txError}</p>
@@ -321,7 +320,7 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
               <Check className="h-6 w-6 text-success" />
             </div>
             <p className="mt-4 font-display text-lg font-semibold">Agent created</p>
-            <p className="mt-1 font-mono text-xs text-muted-foreground">{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ""}</p>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">{agentWallet?.address ? `${agentWallet.address.slice(0, 6)}...${agentWallet.address.slice(-4)}` : ""}</p>
             {txDigest && (
               <a href={`https://suiscan.xyz/testnet/tx/${txDigest}`} target="_blank" className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline">
                 View transaction <ExternalLink className="h-3 w-3" />
@@ -338,15 +337,15 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
         {step === "form" && (
           <button
             onClick={next}
-            disabled={!name.trim()}
+            disabled={!name.trim() || !isWalletConnected}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-40"
           >
-            {isConnected && authMethod === "zklogin" ? "Confirm & Create Agent" : "Sign with Google & Create Agent"} <ArrowRight className="h-4 w-4" />
+            {agentWallet ? "Sign & Create Agent" : "Create Agent Wallet"} <ArrowRight className="h-4 w-4" />
           </button>
         )}
-        {step === "auth" && (
+        {step === "zklogin" && (
           <button onClick={() => setStep("form")} className="text-sm text-muted-foreground hover:text-foreground underline">
-            Cancel authentication
+            Cancel
           </button>
         )}
         {step === "done" && (
@@ -439,13 +438,10 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
   const walletAccount = useCurrentAccount();
   const wallets = useWallets();
   const dAppKit = useDAppKit();
-  const { isConnected: zkConnected, address: zkAddress, startZkLogin } = useSui();
   const [connecting, setConnecting] = useState(false);
 
-  const isWalletConnected = !!walletAccount;
-  const connected = isWalletConnected || zkConnected;
-  const displayAddr = walletAccount?.address ?? zkAddress;
-  const addrLabel = displayAddr ? `${displayAddr.slice(0, 6)}...${displayAddr.slice(-4)}` : "";
+  const isConnected = !!walletAccount;
+  const addrLabel = walletAccount?.address ? `${walletAccount.address.slice(0, 6)}...${walletAccount.address.slice(-4)}` : "";
 
   const handleConnectWallet = async (wallet: typeof wallets[number]) => {
     setConnecting(true);
@@ -457,15 +453,9 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
     onClose();
   };
 
-  const handleGoogleLogin = () => {
-    startZkLogin();
-    onClose();
-  };
-
   const handleDisconnect = async () => {
-    if (isWalletConnected) {
-      await dAppKit.disconnectWallet();
-    }
+    await dAppKit.disconnectWallet();
+    localStorage.removeItem('wallet_address');
     onClose();
   };
 
@@ -475,13 +465,13 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
     <Shell open={open} onClose={onClose}>
       <div className="border-b border-border px-6 py-5">
         <h2 className="font-display text-lg font-semibold">Connect Wallet</h2>
-        <p className="text-xs text-muted-foreground">Use a Sui wallet or sign in with Google (zkLogin).</p>
+        <p className="text-xs text-muted-foreground">Connect your Sui wallet to get started.</p>
       </div>
       <div className="space-y-2 px-4 py-4">
-        {connected ? (
+        {isConnected ? (
           <>
             <div className="rounded-md border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-              {zkConnected ? "Signed in with Google" : "Wallet connected"} · {addrLabel}
+              Wallet connected · {addrLabel}
             </div>
             <button
               onClick={handleDisconnect}
@@ -512,15 +502,6 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
                 </button>
               ))
             )}
-
-            <button
-              onClick={handleGoogleLogin}
-              disabled={disabled}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:bg-accent disabled:opacity-50"
-            >
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">G</span>
-              Sign in with Google
-            </button>
           </>
         )}
       </div>

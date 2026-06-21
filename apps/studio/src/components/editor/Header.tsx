@@ -3,7 +3,7 @@ import { ChevronDown, MoreHorizontal, Play, Loader2, Plus, Wallet, Sun, Moon, La
 import { useState } from "react";
 import { useTheme } from "@/lib/theme";
 import { useWorkflow } from "@/lib/workflow-context";
-import { useSui } from "@/lib/sui-provider";
+import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
 import { api } from "@/lib/api";
 import { notify } from "@/lib/toast";
 import {
@@ -24,11 +24,14 @@ type Props = {
 export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWallet }: Props) {
   const { theme, toggle } = useTheme();
   const { workflowName, dispatch, running, runWorkflow, agents, selectedAgentId, saveWorkflow, deployed, workflowId, nodes } = useWorkflow();
-  const { address, isConnected, authMethod, disconnect } = useSui();
+  const walletAccount = useCurrentAccount();
+  const dAppKit = useDAppKit();
   const agent = agents.find((a) => a.id === selectedAgentId);
   const [editing, setEditing] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
 
+  const isConnected = !!walletAccount;
+  const address = walletAccount?.address ?? null;
   const addrLabel = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
 
   const hasTriggers = nodes.some((n) =>
@@ -190,11 +193,7 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
               className="inline-flex items-center gap-1.5 rounded-md border border-success/40 bg-success/10 px-3 py-1.5 text-xs font-medium text-success"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
-              {authMethod === "zklogin" ? (
-                <span className="grid h-4 w-4 place-items-center rounded-full bg-foreground text-[9px] font-bold text-background">G</span>
-              ) : (
-                <Wallet className="h-3.5 w-3.5" />
-              )}
+              <Wallet className="h-3.5 w-3.5" />
               {addrLabel}
               <ChevronDown className="h-3 w-3" />
             </button>
@@ -203,12 +202,12 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
                 <div className="fixed inset-0 z-40" onClick={() => setWalletMenuOpen(false)} />
                 <div className="absolute right-0 top-full z-50 mt-1 w-56 origin-top-right rounded-xl border border-border bg-popover p-1.5 shadow-2xl">
                   <div className="px-3 py-2 text-[11px] text-muted-foreground">
-                    {authMethod === "zklogin" ? "Signed in with Google" : "Connected via Sui Wallet"}
+                    Connected via Sui Wallet
                   </div>
                   <div className="break-all px-3 py-1 font-mono text-[11px] text-foreground">{address}</div>
                   <div className="my-1 h-px bg-border" />
                   <button
-                    onClick={() => { disconnect(); setWalletMenuOpen(false); }}
+                    onClick={() => { dAppKit.disconnectWallet(); setWalletMenuOpen(false); }}
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[11px] text-danger hover:bg-accent"
                   >
                     <LogOut className="h-3.5 w-3.5" /> Disconnect

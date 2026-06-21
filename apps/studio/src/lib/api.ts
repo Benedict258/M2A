@@ -37,12 +37,9 @@ const BASE = '/api/v1';
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
-  const zkUser = localStorage.getItem('zklogin_user');
-  if (zkUser) {
-    try {
-      const session = JSON.parse(zkUser);
-      if (session.address) headers['x-user-address'] = session.address;
-    } catch {}
+  const walletAddr = localStorage.getItem('wallet_address');
+  if (walletAddr) {
+    headers['x-user-address'] = walletAddr;
   }
   return headers;
 }

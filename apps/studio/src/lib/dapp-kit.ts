@@ -1,14 +1,15 @@
-import { createNetworkConfig } from "@mysten/dapp-kit";
-import { createDAppKit } from "@mysten/dapp-kit-react";
+import { createDAppKit } from '@mysten/dapp-kit-react';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 
-const { networkConfig } = createNetworkConfig({
-  testnet: { url: "https://fullnode.testnet.sui.io:443" },
-  mainnet: { url: "https://fullnode.mainnet.sui.io:443" },
+const GRPC_URLS: Record<string, string> = {
+  testnet: 'https://fullnode.testnet.sui.io:443',
+  mainnet: 'https://fullnode.mainnet.sui.io:443',
+};
+
+export const dAppKit = createDAppKit({
+  networks: ['testnet', 'mainnet'],
+  defaultNetwork: 'testnet',
+  createClient: (network: string) =>
+    new SuiGrpcClient({ network, baseUrl: GRPC_URLS[network] }),
+  autoConnect: true,
 });
-
-const dAppKit = createDAppKit({
-  networks: networkConfig,
-  defaultNetwork: "testnet",
-});
-
-export { dAppKit, networkConfig };
