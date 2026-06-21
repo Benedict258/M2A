@@ -10,6 +10,8 @@ Just nodes and edges.` },
   { id: 'remember', label: '2. Run', code: `// Execute the workflow
 // SSE streaming: watch every step in real-time
 // Parallel agent dispatch across node branches
+// Every node writes to shared memory via Walrus
+// Memory persists across runs, agents, and sessions
 
 Run complete. Output generated.
 Automatically creating dataset...` },
@@ -31,9 +33,9 @@ export default function HowItWorksSection() {
     <section id="how-it-works" className="border-b border-border bg-surface-low">
       <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
         <div className="text-center">
-          <h2 className="text-headline-lg">Build a workflow. Run it. Get a verifiable dataset.</h2>
+          <h2 className="text-headline-lg">1. Build. 2. Run. 3. Dataset. <span className="text-primary">Persistent memory at every step.</span></h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            Three steps. Build, run, and every execution produces a verifiable, privacy-safe dataset.
+            Every node remembers its actions. Every run learns from the last. Three steps from canvas to verifiable data.
           </p>
         </div>
 
