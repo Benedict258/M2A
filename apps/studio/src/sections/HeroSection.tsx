@@ -4,12 +4,11 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
       <div className="mx-auto max-w-[1400px] px-6 pt-32 pb-20 md:pt-40 md:pb-28 text-center relative z-10">
         <h1 className="mt-6 text-display-lg md:text-[64px] md:leading-[68px] tracking-tight">
-          Build automations that generate<br />
-          verifiable data every time they run. <span className="text-primary">On-chain.</span>
+          Build automations on the Sui stack<br />and its protocols. <span className="text-primary">Every node remembers.</span><br />Every run generates verifiable data.
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-body-lg text-muted-foreground">
-          Visual workflow builder on Sui, Walrus, and MemWal. Drag nodes, connect them, run it — and every execution produces a verifiable, privacy-safe dataset stored on Walrus.
+          Visual workflow builder powered by Walrus and MemWal. Drag, connect, and compose Sui protocols — DeFi, bridges, oracles, NFTs. Every execution leaves a permanent, privacy-safe dataset you can verify on-chain.
         </p>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
