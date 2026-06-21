@@ -3,9 +3,6 @@ export default function ProblemSection() {
     <section id="problem" className="bg-surface-low">
       <div className="mx-auto max-w-[1200px] px-6 py-24 md:py-36">
         <div className="text-center mb-16">
-          <p className="text-label-bold text-muted-foreground uppercase tracking-widest mb-6">
-            YOUR VERIFIABLE DATA PLATFORM
-          </p>
           <h2 className="font-display text-3xl sm:text-4xl md:text-[42px] font-bold tracking-tight leading-tight text-white">
             Automation platforms today run workflows.<br />
             Then the value disappears.
