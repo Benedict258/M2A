@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router';
+
 export default function HeroSection() {
   return (
     <section className="relative overflow-hidden border-b border-border">
@@ -12,14 +14,12 @@ export default function HeroSection() {
         </p>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <a
-            href="http://152.67.149.134:5177"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/studio"
             className="inline-flex h-11 items-center rounded-md bg-primary px-6 text-sm font-semibold text-white transition-all hover:brightness-110 active:opacity-80"
           >
             Start Building
-          </a>
+          </Link>
           <a
             href="#how-it-works"
             className="inline-flex h-11 items-center rounded-md border border-border bg-transparent px-6 text-sm font-semibold text-slate-300 transition-all hover:border-primary/60 hover:text-white"
