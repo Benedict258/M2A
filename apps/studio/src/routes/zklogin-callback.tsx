@@ -29,48 +29,54 @@ function ZkLoginCallback() {
       return;
     }
     const data = JSON.parse(stored);
-    localStorage.removeItem('zklogin_ephemeral');
 
     (async () => {
-      const { Ed25519Keypair } = await import('@mysten/sui/keypairs/ed25519');
-      const keypair = Ed25519Keypair.fromSecretKey(new Uint8Array(data.secretKey));
-      const pk = keypair.getPublicKey();
+      try {
+        const { Ed25519Keypair } = await import('@mysten/sui/keypairs/ed25519');
+        const keypair = Ed25519Keypair.fromSecretKey(new Uint8Array(data.secretKey));
+        const pk = keypair.getPublicKey();
 
-      const maxEpoch = urlMaxEpoch ? Number(urlMaxEpoch) : data.maxEpoch;
+        const maxEpoch = urlMaxEpoch ? Number(urlMaxEpoch) : data.maxEpoch;
 
-      const res = await fetch(`${ZKL_SERVICE}/auth/prove`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jwt: token,
-          extendedEphemeralPublicKey: pk.toSuiPublicKey(),
-          maxEpoch,
-          jwtRandomness: data.randomness,
+        const res = await fetch(`${ZKL_SERVICE}/auth/prove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jwt: token,
+            extendedEphemeralPublicKey: pk.toSuiPublicKey(),
+            maxEpoch,
+            jwtRandomness: data.randomness,
+            salt,
+            keyClaimName: 'sub',
+          }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          setError(`Proof generation failed (${res.status})${text ? ': ' + text : ''}`);
+          return;
+        }
+
+        const proof = await res.json();
+        const session = {
+          address,
+          token,
           salt,
-          keyClaimName: 'sub',
-        }),
-      });
+          proofPoints: proof.proofPoints,
+          issBase64Details: proof.issBase64Details,
+          headerBase64: proof.headerBase64,
+          maxEpoch,
+          secretKey: data.secretKey,
+        };
+        localStorage.setItem('zklogin_user', JSON.stringify(session));
+        localStorage.removeItem('zklogin_ephemeral');
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        setError(`Proof generation failed (${res.status})${text ? ': ' + text : ''}`);
-        return;
+        navigate({ to: '/' });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('zkLogin callback error:', err);
+        setError(`Authentication failed: ${msg}`);
       }
-
-      const proof = await res.json();
-      const session = {
-        address,
-        token,
-        salt,
-        proofPoints: proof.proofPoints,
-        issBase64Details: proof.issBase64Details,
-        headerBase64: proof.headerBase64,
-        maxEpoch,
-        secretKey: data.secretKey,
-      };
-      localStorage.setItem('zklogin_user', JSON.stringify(session));
-
-      navigate({ to: '/' });
     })();
   }, []);
 
