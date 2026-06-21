@@ -28,8 +28,8 @@ export default function FeaturesSection() {
               key={cat.label}
               className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-3xl p-8 flex flex-col justify-between min-h-[340px]"
               style={{
-                background: 'linear-gradient(135deg, #111318 0%, #1a1d25 50%, #111318 100%)',
-                border: '1px solid rgba(139, 92, 246, 0.15)',
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, #111318 40%, rgba(139,92,246,0.04) 100%)',
+                border: '1px solid rgba(139, 92, 246, 0.2)',
               }}
             >
               <div>
