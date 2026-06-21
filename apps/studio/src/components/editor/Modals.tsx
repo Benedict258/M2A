@@ -3,6 +3,7 @@ import { Check, Loader2, Search, X, ExternalLink, Wallet, ArrowRight, AlertCircl
 import { useWorkflow, type Agent, type CanvasNode, type Connection } from "@/lib/workflow-context";
 import { api } from "@/lib/api";
 import { useSui } from "@/lib/sui-provider";
+import { useWallets, useDAppKit, useCurrentAccount } from "@mysten/dapp-kit-react";
 import { notify } from "@/lib/toast";
 
 /* ------------ Shell ------------ */
@@ -146,7 +147,10 @@ const TOOLS = ["Walrus Storage", "Sui RPC", "Price Feeds", "AI Memory"];
 
 export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { dispatch } = useWorkflow();
-  const { isConnected, authMethod, startZkLogin, address } = useSui();
+  const walletAccount = useCurrentAccount();
+  const { isConnected: zkConnected, authMethod, startZkLogin, address: zkAddress } = useSui();
+  const isConnected = !!walletAccount || zkConnected;
+  const address = walletAccount?.address ?? zkAddress;
   const [step, setStep] = useState<"form" | "auth" | "signing" | "done">("form");
   const [name, setName] = useState("");
   const [budget, setBudget] = useState(50);
@@ -409,13 +413,23 @@ export function TopUpDialog({ open, onClose }: { open: boolean; onClose: () => v
 
 /* ------------ Wallet Connect ------------ */
 export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { isConnected, isConnecting, address, authMethod, connectWallet, startZkLogin, disconnect } = useSui();
+  const walletAccount = useCurrentAccount();
+  const wallets = useWallets();
+  const dAppKit = useDAppKit();
+  const { isConnected: zkConnected, address: zkAddress, startZkLogin } = useSui();
+  const [connecting, setConnecting] = useState(false);
 
-  const handleConnectWallet = async (walletName?: string) => {
-    if (walletName === "Sui Wallet") {
-      await connectWallet();
-    } else {
-      await connectWallet();
+  const isWalletConnected = !!walletAccount;
+  const connected = isWalletConnected || zkConnected;
+  const displayAddr = walletAccount?.address ?? zkAddress;
+  const addrLabel = displayAddr ? `${displayAddr.slice(0, 6)}...${displayAddr.slice(-4)}` : "";
+
+  const handleConnectWallet = async (wallet: typeof wallets[number]) => {
+    setConnecting(true);
+    try {
+      await dAppKit.connectWallet({ wallet });
+    } finally {
+      setConnecting(false);
     }
     onClose();
   };
@@ -425,12 +439,14 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
     onClose();
   };
 
-  const handleDisconnect = () => {
-    disconnect();
+  const handleDisconnect = async () => {
+    if (isWalletConnected) {
+      await dAppKit.disconnectWallet();
+    }
     onClose();
   };
 
-  const addrLabel = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+  const disabled = connecting;
 
   return (
     <Shell open={open} onClose={onClose}>
@@ -439,10 +455,10 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
         <p className="text-xs text-muted-foreground">Use a Sui wallet or sign in with Google (zkLogin).</p>
       </div>
       <div className="space-y-2 px-4 py-4">
-        {isConnected ? (
+        {connected ? (
           <>
             <div className="rounded-md border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-              {authMethod === "zklogin" ? "Signed in with Google" : "Wallet connected"} · {addrLabel}
+              {zkConnected ? "Signed in with Google" : "Wallet connected"} · {addrLabel}
             </div>
             <button
               onClick={handleDisconnect}
@@ -453,28 +469,30 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
           </>
         ) : (
           <>
-            {[
-              { name: "Sui Wallet", key: "sui" },
-              { name: "Suiet", key: "suiet" },
-              { name: "Ethos", key: "ethos" },
-              { name: "Phantom", key: "phantom" },
-            ].map((w) => (
-              <button
-                key={w.key}
-                onClick={() => handleConnectWallet(w.name)}
-                disabled={isConnecting}
-                className="flex w-full items-center justify-between rounded-md border border-border bg-surface-container px-4 py-3 text-sm hover:bg-accent disabled:opacity-50"
-              >
-                <span className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-primary" /> {w.name}
-                </span>
-                {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4 text-muted-foreground" />}
-              </button>
-            ))}
+            {wallets.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-4">
+                No Sui wallets detected. Install a wallet like{" "}
+                <a href="https://chromewebstore.google.com/detail/sui-wallet" target="_blank" className="text-primary underline">Sui Wallet</a>.
+              </p>
+            ) : (
+              wallets.map((w) => (
+                <button
+                  key={w.name}
+                  onClick={() => handleConnectWallet(w)}
+                  disabled={disabled}
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-surface-container px-4 py-3 text-sm hover:bg-accent disabled:opacity-50"
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-primary" /> {w.name}
+                  </span>
+                  {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                </button>
+              ))
+            )}
 
             <button
               onClick={handleGoogleLogin}
-              disabled={isConnecting}
+              disabled={disabled}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:bg-accent disabled:opacity-50"
             >
               <span className="grid h-5 w-5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">G</span>

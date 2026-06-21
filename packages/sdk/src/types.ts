@@ -28,6 +28,7 @@ export interface AgentWorkflowNode extends BaseWorkflowNode {
   model: string;
   tools: string[];
   memory_tier: MemoryTierConfig;
+  data?: Record<string, unknown>;
 }
 
 export interface InputWorkflowNode extends BaseWorkflowNode {

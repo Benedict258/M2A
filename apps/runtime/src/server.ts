@@ -3,7 +3,12 @@ import { initDb } from './db.js';
 import { bootstrapEngine } from './engine/bootstrap.js';
 import { scheduler } from './engine/Scheduler.js';
 
-initDb().catch(console.error);
+let dbReady = false;
+let dbError: Error | null = null;
+
+initDb()
+  .then(() => { dbReady = true; })
+  .catch(err => { dbError = err; console.error('Database init failed:', err); });
 bootstrapEngine();
 
 import http from 'http';
@@ -199,7 +204,18 @@ app.listen(PORT, () => {
 
   // Initialize platform (pool namespaces, etc.) — non-blocking
   initializePlatform();
-  scheduler.start();
+
+  // Wait for DB readiness before starting scheduler
+  const startScheduler = () => {
+    if (dbReady) {
+      scheduler.start();
+    } else if (dbError) {
+      console.error('[Server] DB init failed, scheduler not started');
+    } else {
+      setTimeout(startScheduler, 500);
+    }
+  };
+  startScheduler();
 });
 
 // zkLogin helper: listen on port 3000 to catch Google OAuth redirect

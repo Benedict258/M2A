@@ -1,19 +1,18 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
-interface SuiContextType {
+interface ZkLoginContextType {
   address: string | null;
   isConnected: boolean;
   isConnecting: boolean;
-  authMethod: 'wallet' | 'zklogin' | null;
-  connectWallet: () => Promise<void>;
+  authMethod: 'zklogin' | null;
   startZkLogin: () => void;
   disconnect: () => void;
   zkLoginSession: any;
 }
 
-const SuiContext = createContext<SuiContextType>(null!);
+const ZkLoginContext = createContext<ZkLoginContextType>(null!);
 
-export function useSui() { return useContext(SuiContext); }
+export function useSui() { return useContext(ZkLoginContext); }
 
 const ZKL_SERVICE = 'https://zklservicest3rdwl.up.railway.app';
 const ZKL_API_KEY = (import.meta as any).env?.VITE_ZKL_API_KEY || '';
@@ -22,7 +21,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'wallet' | 'zklogin' | null>(null);
+  const [authMethod] = useState<'zklogin' | null>('zklogin');
   const [zkLoginSession, setZkLoginSession] = useState<any>(null);
 
   useEffect(() => {
@@ -32,28 +31,6 @@ export function SuiProvider({ children }: { children: ReactNode }) {
       setZkLoginSession(session);
       setAddress(session.address);
       setIsConnected(true);
-      setAuthMethod('zklogin');
-    }
-  }, []);
-
-  const connectWallet = useCallback(async () => {
-    setIsConnecting(true);
-    try {
-      if (typeof window !== 'undefined' && (window as any).suiWallet) {
-        const wallet = (window as any).suiWallet;
-        const accounts = await wallet.requestAccounts();
-        if (accounts.length > 0) {
-          setAddress(accounts[0]);
-          setIsConnected(true);
-          setAuthMethod('wallet');
-        }
-      } else {
-        window.open('https://chromewebstore.google.com/detail/sui-wallet', '_blank');
-      }
-    } catch (err) {
-      console.error('Wallet connection failed:', err);
-    } finally {
-      setIsConnecting(false);
     }
   }, []);
 
@@ -69,7 +46,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
     const maxEpoch = Number(epoch) + 20;
     const nonce = generateNonce(keypair.getPublicKey(), maxEpoch, randomness);
 
-    sessionStorage.setItem('zklogin_ephemeral', JSON.stringify({
+    localStorage.setItem('zklogin_ephemeral', JSON.stringify({
       secretKey: Array.from(keypair.getSecretKey()),
       randomness,
       maxEpoch,
@@ -84,12 +61,11 @@ export function SuiProvider({ children }: { children: ReactNode }) {
     setZkLoginSession(null);
     setAddress(null);
     setIsConnected(false);
-    setAuthMethod(null);
   }, []);
 
   return (
-    <SuiContext.Provider value={{ address, isConnected, isConnecting, authMethod, connectWallet, startZkLogin, disconnect, zkLoginSession }}>
+    <ZkLoginContext.Provider value={{ address, isConnected, isConnecting, authMethod, startZkLogin, disconnect, zkLoginSession }}>
       {children}
-    </SuiContext.Provider>
+    </ZkLoginContext.Provider>
   );
 }
