@@ -18,10 +18,10 @@ function CardItem({ label, items }: { label: string; items: string[] }) {
     <div
       className="shrink-0 w-[220px] h-[220px] rounded-3xl p-5 flex flex-col bg-card border border-border"
     >
-      <h3 className="text-lg font-bold text-white mb-3">{label}</h3>
+      <h3 className="text-lg font-bold text-primary mb-3">{label}</h3>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 flex-1 overflow-hidden">
         {items.map((item) => (
-          <p key={item} className="text-xs text-slate-400 truncate">{item}</p>
+          <p key={item} className="text-xs text-slate-400 dark:text-slate-400 text-black truncate">{item}</p>
         ))}
       </div>
       <span className="text-[10px] font-bold text-primary uppercase tracking-wider mt-auto">
