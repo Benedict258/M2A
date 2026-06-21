@@ -21,7 +21,7 @@ export default function SolutionSection() {
                 <rect x="3" y="14" width="7" height="7" rx="1" />
                 <rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
-              <h3 className="font-display text-3xl md:text-4xl font-bold text-primary leading-tight">
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
                 Workflow<br />Engine
               </h3>
               <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
@@ -54,7 +54,7 @@ export default function SolutionSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 3v5h-5" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
               </svg>
-              <h3 className="font-display text-3xl md:text-4xl font-bold text-primary leading-tight">
+              <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
                 Persistent<br />Memory
               </h3>
               <p className="mt-6 text-slate-400 text-base leading-relaxed max-w-sm">
