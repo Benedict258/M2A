@@ -6,11 +6,8 @@ const STATS = [
 ];
 
 const TECH = [
+  { category: 'Blockchain', items: ['Sui Network', 'Move Contracts'] },
   { category: 'Storage', items: ['Walrus', 'MemWal', 'SEAL'] },
-  { category: 'AI', items: ['Groq', 'Llama 3'] },
-  { category: 'Frontend', items: ['React 19', 'Vite 8', 'Tailwind CSS 4'] },
-  { category: 'Runtime', items: ['Express', 'TypeScript'] },
-  { category: 'Packages', items: ['buiry', '@m2a/sdk', '@m2a/client'] },
 ];
 
 export default function ArchitectureSection() {
