@@ -202,6 +202,22 @@ export const api = {
     return res.json();
   },
 
+  async getConfig(): Promise<{ m2aPackageId: string; registryId: string; suiNetwork: string }> {
+    const res = await fetch(`${BASE}/agents/config`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  async deactivateAgent(id: string, data: { txBytes: string; signatures: string[] }): Promise<any> {
+    const res = await fetch(`${BASE}/agents/${id}/deactivate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
   async deleteAgent(id: string): Promise<any> {
     const res = await fetch(`${BASE}/agents/${id}`, {
       method: 'DELETE',

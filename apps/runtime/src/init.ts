@@ -3,6 +3,15 @@ import { db } from './db.js';
 
 const REQUIRED_POOLS = ['pool::code-review', 'pool::research', 'pool::trading'];
 
+const DEFAULT_TOOLS = ['webSearchTool', 'webFetchTool', 'sui_query', 'store_to_walrus', 'fetch_from_walrus'];
+const DEFI_TOOLS = ['sui_query', 'aftermath-swap', 'cetus-swap', 'defi-deepbook-trade', 'navi-lending', 'suilend-lending', 'pyth'];
+
+const DEFAULT_MEMORY = {
+  read: ['pool::default'],
+  write: [],
+  tier: 'hot' as const,
+};
+
 const BUILTIN_TEMPLATES = [
   {
     id: 'code-review',
@@ -18,10 +27,10 @@ const BUILTIN_TEMPLATES = [
       version: '1.0.0',
       namespace_prefix: '',
       nodes: [
-        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input' } },
-        { id: 'agent_1', type: 'agent', position: { x: 350, y: 120 }, data: { label: 'Senior Reviewer', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'Review code for bugs, style, and security issues.' } },
-        { id: 'agent_2', type: 'agent', position: { x: 350, y: 320 }, data: { label: 'Junior Reviewer', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'Check for common mistakes and suggest improvements.' } },
-        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output' } },
+        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input', token: '', description: 'Paste your code here for review' } },
+        { id: 'agent_1', type: 'agent', position: { x: 350, y: 120 }, data: { label: 'Senior Reviewer', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are a senior code reviewer. Review the provided code for bugs, security vulnerabilities, style issues, and performance problems. Provide detailed, actionable feedback.', tools: DEFAULT_TOOLS, memory_tier: { ...DEFAULT_MEMORY, write: ['pool::code-review'] } } },
+        { id: 'agent_2', type: 'agent', position: { x: 350, y: 320 }, data: { label: 'Junior Reviewer', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are a junior code reviewer. Check the provided code for common mistakes, typos, and suggest improvements. Focus on readability and best practices.', tools: DEFAULT_TOOLS, memory_tier: { ...DEFAULT_MEMORY, write: ['pool::code-review'] } } },
+        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output', format: 'raw' } },
       ],
       edges: [
         { id: 'e1', source: 'input_1', target: 'agent_1' },
@@ -45,9 +54,9 @@ const BUILTIN_TEMPLATES = [
       version: '1.0.0',
       namespace_prefix: '',
       nodes: [
-        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input' } },
-        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'Researcher', type: 'agent', directives: 'Research market trends and competitors.' } },
-        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output' } },
+        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input', token: '', description: 'Enter your research question or topic' } },
+        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'Researcher', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are a market research analyst. Research market trends, competitors, and industry dynamics using web search and data analysis. Provide comprehensive, data-driven insights.', tools: DEFAULT_TOOLS, memory_tier: { ...DEFAULT_MEMORY, write: ['pool::research'] } } },
+        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output', format: 'raw' } },
       ],
       edges: [
         { id: 'e1', source: 'input_1', target: 'agent_1' },
@@ -69,22 +78,20 @@ const BUILTIN_TEMPLATES = [
       version: '1.0.0',
       namespace_prefix: '',
       nodes: [
-        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input' } },
-        { id: 'agent_1', type: 'agent', position: { x: 350, y: 120 }, data: { label: 'Support Agent', type: 'agent', directives: 'Provide helpful customer support.' } },
-        { id: 'walrus_1', type: 'walrus', position: { x: 350, y: 320 }, data: { label: 'KB Storage', type: 'walrus' } },
-        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output' } },
+        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input', token: '', description: 'Type your customer support question' } },
+        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'Support Agent', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are a helpful customer support agent. Use your tools (web search, walrus storage) to find relevant information. Always be polite, professional, and thorough in your responses.', tools: [...DEFAULT_TOOLS, 'semanticSearchTool'], memory_tier: DEFAULT_MEMORY } },
+        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output', format: 'raw' } },
       ],
       edges: [
         { id: 'e1', source: 'input_1', target: 'agent_1' },
-        { id: 'e2', source: 'walrus_1', target: 'agent_1' },
-        { id: 'e3', source: 'agent_1', target: 'output_1' },
+        { id: 'e2', source: 'agent_1', target: 'output_1' },
       ],
     },
   },
   {
     id: 'defi-trading',
     name: 'DeFi Trading Agent',
-    description: 'Automated DeFi trading and analysis',
+    description: 'Automated DeFi trading and analysis across multiple protocols',
     category: 'DeFi',
     owner: '',
     is_public: true,
@@ -95,14 +102,13 @@ const BUILTIN_TEMPLATES = [
       version: '1.0.0',
       namespace_prefix: '',
       nodes: [
-        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input' } },
-        { id: 'sui_1', type: 'sui', position: { x: 50, y: 350 }, data: { label: 'Price Feed', type: 'sui' } },
-        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'Trading Agent', type: 'agent', directives: 'You are an automated DeFi trading agent. You have access to DeepBook, Cetus, Aftermath, and other DeFi protocols. Analyze market data using the Sui Query tool, then build and simulate trades using the available DeFi tools. Always explain your analysis before executing any trade.' } },
+        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Input', type: 'input', token: '', description: 'Describe the trade or analysis you want to perform' } },
+        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'Trading Agent', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are an automated DeFi trading agent. You have access to DeepBook, Cetus, Aftermath, Navi, Suilend, and other protocols. Use sui_query to discover pools, check prices, and on-chain data. Then execute trades using the available DeFi tools like aftermath-swap, cetus-swap, defi-deepbook-trade, navi-lending, suilend-lending. Always explain your analysis before executing. Default to testnet/simulation unless told otherwise.', tools: DEFI_TOOLS, memory_tier: { ...DEFAULT_MEMORY, write: ['pool::trading'] } } },
+        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Output', type: 'output', format: 'raw' } },
       ],
       edges: [
         { id: 'e1', source: 'input_1', target: 'agent_1' },
-        { id: 'e2', source: 'sui_1', target: 'agent_1' },
-        { id: 'e3', source: 'agent_1', target: 'output_1' },
+        { id: 'e2', source: 'agent_1', target: 'output_1' },
       ],
     },
   },
@@ -120,15 +126,13 @@ const BUILTIN_TEMPLATES = [
       version: '1.0.0',
       namespace_prefix: '',
       nodes: [
-        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Trade Input', type: 'input' } },
-        { id: 'sui_1', type: 'sui', position: { x: 50, y: 360 }, data: { label: 'Price Feed', type: 'sui' } },
-        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'DeepBook Trader', type: 'agent', directives: 'You are a DeepBook DEX trading agent. You can use the defi-deepbook-trade tool to execute swaps, limit orders, and cancel orders on DeepBook, and the defi-deepbook-lend tool for lending operations. First check the pool info using sui_query, then execute the requested trade. Only simulate trades unless user explicitly asks for live execution.' } },
-        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Trade Result', type: 'output' } },
+        { id: 'input_1', type: 'input', position: { x: 50, y: 200 }, data: { label: 'Trade Input', type: 'input', token: '', description: 'Describe the DeepBook trade you want to execute' } },
+        { id: 'agent_1', type: 'agent', position: { x: 350, y: 200 }, data: { label: 'DeepBook Trader', type: 'agent', model: 'llama-3.3-70b-versatile', directives: 'You are a DeepBook DEX trading agent. Use sui_query to discover pool IDs, check order book depth, and get pool info on-chain. Then use defi-deepbook-trade to execute swaps or limit orders. Always check pool state first and explain your analysis before trading.', tools: ['sui_query', 'defi-deepbook-trade', 'pyth'], memory_tier: { ...DEFAULT_MEMORY, write: ['pool::trading'] } } },
+        { id: 'output_1', type: 'output', position: { x: 650, y: 200 }, data: { label: 'Trade Result', type: 'output', format: 'raw' } },
       ],
       edges: [
         { id: 'e1', source: 'input_1', target: 'agent_1' },
-        { id: 'e2', source: 'sui_1', target: 'agent_1' },
-        { id: 'e3', source: 'agent_1', target: 'output_1' },
+        { id: 'e2', source: 'agent_1', target: 'output_1' },
       ],
     },
   },

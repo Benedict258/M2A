@@ -88,3 +88,18 @@ export function buildDeactivateAgentTx(
   });
   return tx;
 }
+
+export function buildDeleteAgentTx(
+  registryId: string,
+  policyId: string,
+): Transaction {
+  const tx = new Transaction();
+  tx.moveCall({
+    target: `${getM2APackageId()}::${M2A_MODULE}::delete_agent`,
+    arguments: [
+      tx.object(registryId),
+      tx.object(policyId),
+    ],
+  });
+  return tx;
+}

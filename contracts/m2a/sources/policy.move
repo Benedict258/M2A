@@ -170,6 +170,10 @@ public fun agent_id(policy: &AgentPolicy): address {
     policy.agent_id
 }
 
+public fun agent_wallet(policy: &AgentPolicy): address {
+    policy.agent_wallet
+}
+
 public fun is_owner(policy: &AgentPolicy, addr: address): bool {
     policy.owner == addr
 }

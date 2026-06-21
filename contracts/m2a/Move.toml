@@ -5,6 +5,6 @@ edition = "2024"
 [dependencies]
 
 [addresses]
-m2a = "0x0"
+m2a = "0x4d68d65b5bd175ed7e4c844e6950822ed3b183857d81e18c1b058bcef83bd8ac"
 std = "0x1"
 sui = "0x2"

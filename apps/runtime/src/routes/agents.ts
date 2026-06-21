@@ -7,6 +7,15 @@ import { fromBase64 } from '@mysten/sui/utils';
 
 export const router = Router();
 
+// GET /api/v1/agents/config — return shared config needed by the frontend to build txs
+router.get('/config', async (_req, res) => {
+  res.json({
+    m2aPackageId: resolveNetworkVar('M2A_PACKAGE_ID') || '0x0',
+    registryId: resolveNetworkVar('M2A_REGISTRY_ID') || '0x0',
+    suiNetwork: process.env.SUI_NETWORK || 'testnet',
+  });
+});
+
 interface AgentRecord {
   id: string;
   name: string;
@@ -264,6 +273,34 @@ router.get('/discover/:ownerAddress', async (req, res) => {
     }
 
     res.json({ agents });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/v1/agents/:id/deactivate — deactivate agent on-chain, then remove DB record
+router.post('/:id/deactivate', async (req, res) => {
+  try {
+    const { txBytes, signatures } = req.body;
+    if (!txBytes) return res.status(400).json({ error: 'txBytes is required' });
+
+    const suiClient = createSuiClient();
+    const txBytesBytes = fromBase64(txBytes);
+
+    const response = await suiClient.executeTransaction({
+      transaction: txBytesBytes,
+      signatures: signatures || [],
+      include: { effects: true },
+    });
+
+    if (response.$kind !== 'Transaction') {
+      return res.status(500).json({ error: 'Deactivation tx failed', details: response.FailedTransaction });
+    }
+
+    const txDigest = response.Transaction.digest;
+    await db.query('DELETE FROM agents WHERE id = $1', [req.params.id]);
+
+    res.json({ deleted: true, txDigest });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

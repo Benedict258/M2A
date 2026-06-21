@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/lib/theme";
 import { useWorkflow } from "@/lib/workflow-context";
 import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
+import { Transaction } from "@mysten/sui/transactions";
 import { api } from "@/lib/api";
 import { notify } from "@/lib/toast";
 import {
@@ -42,7 +43,38 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
 
   const handleDeleteAgent = async () => {
     if (!agent || deletingAgent) return;
-    if (!window.confirm(`Delete agent "${agent.name}"? The on-chain policy will remain.`)) return;
+
+    if (agent.onChainId && walletAccount) {
+      if (!window.confirm(`Delete "${agent.name}" on-chain and remove it from the registry? This will prompt a wallet signature.`)) return;
+      setDeletingAgent(true);
+      try {
+        const config = await api.getConfig();
+        const tx = new Transaction();
+        tx.moveCall({
+          target: `${config.m2aPackageId}::m2a::delete_agent`,
+          arguments: [
+            tx.object(config.registryId),
+            tx.object(agent.onChainId),
+          ],
+        });
+        tx.setSender(walletAccount.address);
+
+        const { bytes, signature } = await dAppKit.signTransaction({ transaction: tx });
+        await api.deactivateAgent(agent.id, { txBytes: bytes, signatures: [signature] });
+
+        dispatch({ type: "select_agent", id: null });
+        notify.success('Agent deleted from on-chain and database');
+        return;
+      } catch (err) {
+        setDeletingAgent(false);
+        const msg = err instanceof Error ? err.message : 'Deletion failed';
+        notify.error(msg);
+        return;
+      }
+    }
+
+    // No on-chain policy — fall back to DB-only delete
+    if (!window.confirm(`Delete agent "${agent.name}"?`)) return;
     setDeletingAgent(true);
     try {
       await api.deleteAgent(agent.id);

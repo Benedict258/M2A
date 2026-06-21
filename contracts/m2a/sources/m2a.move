@@ -95,6 +95,24 @@ entry fun deactivate_agent(
     event::emit(AgentFrozen { agent_id: agent_addr });
 }
 
+entry fun delete_agent(
+    registry: &mut AgentRegistry,
+    policy: &mut AgentPolicy,
+    ctx: &TxContext,
+) {
+    let caller = ctx.sender();
+    assert!(policy.is_owner(caller), ENotOwner);
+
+    let agent_wallet_addr = policy.agent_wallet();
+    let owner = policy.owner();
+
+    policy.deactivate();
+    registry.remove_agent(agent_wallet_addr, owner);
+
+    let agent_addr = policy.agent_id();
+    event::emit(AgentFrozen { agent_id: agent_addr });
+}
+
 public fun emit_policy_updated(agent_id: address, policy_version: u64) {
     event::emit(PolicyUpdated { agent_id, policy_version });
 }

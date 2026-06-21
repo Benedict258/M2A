@@ -127,8 +127,18 @@ export class SuiNodeHandler implements NodeHandler {
 
   async execute(node: WorkflowNode, _inputs: string[], context: any): Promise<NodeHandlerResult> {
     const data = node.data as Record<string, unknown> | undefined;
-    const params = (data?.params as Record<string, unknown>) || { method: 'getReferenceGasPrice', params: {} };
-    const result = await suiQuery.execute(params, context);
+    const action = (data?.action as string) || 'get_object';
+    const objectId = (data?.objectId as string) || '';
+    if (!objectId) {
+      return { output: JSON.stringify({ note: 'Configure an Object ID or address to query on-chain data', network: process.env.SUI_NETWORK || 'testnet' }) };
+    }
+    let method = 'getObject';
+    let params: any = { id: objectId };
+    if (action === 'get_balance') {
+      method = 'getBalance';
+      params = { owner: objectId };
+    }
+    const result = await suiQuery.execute({ method, params }, context);
     return { output: typeof result === 'string' ? result : JSON.stringify(result) };
   }
 }
