@@ -1,6 +1,5 @@
 const ZKL_SERVICE = "https://zklservicest3rdwl.up.railway.app";
 const ZKL_API_KEY = (import.meta as any).env?.VITE_ZKL_API_KEY || "";
-const RUNTIME_URL = (import.meta as any).env?.VITE_RUNTIME_URL || "http://localhost:3001";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -27,7 +26,7 @@ export async function startAgentZkLogin() {
 
     localStorage.setItem("zklogin_return_to", window.location.pathname + window.location.search);
 
-    const redirect = encodeURIComponent(`${RUNTIME_URL}/auth/callback`);
+    const redirect = encodeURIComponent(`${window.location.origin}/zklogin-callback`);
     window.location.href = `${ZKL_SERVICE}/auth/google?nonce=${encodeURIComponent(nonce)}&api_key=${ZKL_API_KEY}&redirect=${redirect}`;
   }
 }
