@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
 import { Loader2, Check, X, Plus } from "lucide-react";
 import { getNodeDef } from "@/lib/nodes";
 import { useWorkflow, type CanvasNode } from "@/lib/workflow-context";
+import { ErrorBoundary } from "@/lib/error-boundary";
+import { ShortcutsOverlay } from "./ShortcutsOverlay";
 
 const NODE_W = 220;
 const NODE_H = 84;
@@ -11,6 +13,7 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const [panning, setPanning] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const panStart = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
@@ -100,6 +103,10 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
         const src = clipboard.current;
         addNodeOfType(src.type, src.x + 40, src.y + 40);
       }
+      if (e.key === '?' && !meta) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -148,6 +155,7 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
   const isEmpty = nodes.length === 0;
 
   return (
+    <ErrorBoundary>
     <div
       ref={containerRef}
       onPointerDown={onCanvasPointerDown}
@@ -221,8 +229,8 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
                 />
               ))}
             </div>
-          </div>
-        );
+    </div>
+  );
       })()}
 
       {/* World transform */}
@@ -264,6 +272,8 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
         ))}
       </div>
 
+      {showShortcuts && <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
+
       {isEmpty && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div className="pointer-events-auto text-center">
@@ -282,6 +292,7 @@ export function EditorCanvas({ onOpenPalette }: { onOpenPalette: () => void }) {
         </div>
       )}
     </div>
+  </ErrorBoundary>
   );
 }
 

@@ -3,6 +3,7 @@ import { Check, Loader2, Search, X, ExternalLink, Wallet, ArrowRight, AlertCircl
 import { useWorkflow, type Agent, type CanvasNode, type Connection } from "@/lib/workflow-context";
 import { api } from "@/lib/api";
 import { useSui } from "@/lib/sui-provider";
+import { notify } from "@/lib/toast";
 
 /* ------------ Shell ------------ */
 function Shell({ open, onClose, children, size = "md" }: { open: boolean; onClose: () => void; children: React.ReactNode; size?: "md" | "lg" | "xl" }) {
@@ -147,10 +148,12 @@ export function TemplateMarketplace({ open, onClose }: { open: boolean; onClose:
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("All");
   const [remoteTemplates, setRemoteTemplates] = useState<TemplateDef[]>([]);
+  const [loading, setLoading] = useState(false);
   const cats = ["All", "AI", "DeFi", "Web2", "Trigger"];
 
   useEffect(() => {
     if (!open) return;
+    setLoading(true);
     api.listTemplates().then((templates: any[]) => {
       const mapped: TemplateDef[] = templates.map((t: any) => {
         const def = t.definition || t;
@@ -167,7 +170,7 @@ export function TemplateMarketplace({ open, onClose }: { open: boolean; onClose:
         };
       });
       setRemoteTemplates(mapped);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [open]);
 
   const all = remoteTemplates.length > 0 ? remoteTemplates : BUILTIN_TEMPLATES;
@@ -218,7 +221,13 @@ export function TemplateMarketplace({ open, onClose }: { open: boolean; onClose:
       </div>
 
       <div className="scrollbar-thin grid max-h-[60vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
-        {filtered.map((t) => (
+        {loading ? (
+          <div className="col-span-full grid place-items-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="col-span-full grid place-items-center py-16 text-xs text-muted-foreground">No templates found.</div>
+        ) : filtered.map((t) => (
           <div key={t.id} className="flex flex-col rounded-lg border border-border bg-surface p-5 transition hover:border-primary/40">
             <div className="mb-3 flex items-center justify-between">
               <span className="rounded bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">{t.category}</span>
@@ -296,8 +305,11 @@ export function CreateAgentDialog({ open, onClose }: { open: boolean; onClose: (
       dispatch({ type: "add_agent", agent });
       setTxDigest(result.txDigest || "");
       setStep("done");
+      notify.success('Agent created');
     } catch (err) {
-      setTxError(err instanceof Error ? err.message : "Failed to create agent");
+      const msg = err instanceof Error ? err.message : "Failed to create agent";
+      setTxError(msg);
+      notify.error('Agent creation failed: ' + msg);
       setStep("form");
     }
   };
@@ -564,7 +576,8 @@ export function WalletDialog({ open, onClose }: { open: boolean; onClose: () => 
                 </span>
                 {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4 text-muted-foreground" />}
               </button>
-            ))}
+        ))}
+
             <button
               onClick={handleGoogleLogin}
               disabled={isConnecting}

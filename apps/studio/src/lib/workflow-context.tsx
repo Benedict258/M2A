@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { getNodeDef } from "./nodes";
 import { api } from "./api";
+import { notify } from "./toast";
 
 export type CanvasNode = {
   id: string;
@@ -227,6 +228,7 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
     if (state.running) return;
     dispatch({ type: "set_running", running: true });
     dispatch({ type: "clear_logs" });
+    notify.info('Execution started');
 
     const workflow = {
       id: state.workflowId || `wf_${Date.now()}`,
@@ -261,10 +263,12 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
         case "node:error":
           dispatch({ type: "set_status", id: event.nodeId!, status: "error" });
           dispatch({ type: "log", entry: { id: `l_${Date.now()}`, level: "error", message: event.error || "Error", ts: ts(), nodeId: event.nodeId! } });
+          notify.error('Execution failed: ' + (event.error || 'Unknown error'));
           break;
         case "workflow:complete":
           dispatch({ type: "set_running", running: false });
           dispatch({ type: "log", entry: { id: `l_${Date.now()}`, level: "success", message: "Workflow completed.", ts: ts() } });
+          notify.success('Workflow completed');
           break;
       }
     });
@@ -291,6 +295,7 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
     const saved = await api.saveWorkflow(workflow);
     dispatch({ type: "set_workflow_id", id: saved.id });
     dispatch({ type: "log", entry: { id: `l_${Date.now()}`, level: "success", message: "Workflow saved.", ts: new Date().toTimeString().slice(0, 8) } });
+    notify.success('Workflow saved');
   }, [state.nodes, state.connections, state.workflowId, state.workflowName]);
 
   const loadWorkflow = useCallback(async (id: string) => {

@@ -39,8 +39,17 @@ export function SuiProvider({ children }: { children: ReactNode }) {
   const connectWallet = useCallback(async () => {
     setIsConnecting(true);
     try {
-      const { dAppKit } = await import('@mysten/dapp-kit');
-      await dAppKit.connectWallet();
+      if (typeof window !== 'undefined' && (window as any).suiWallet) {
+        const wallet = (window as any).suiWallet;
+        const accounts = await wallet.requestAccounts();
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          setIsConnected(true);
+          setAuthMethod('wallet');
+        }
+      } else {
+        window.open('https://chromewebstore.google.com/detail/sui-wallet', '_blank');
+      }
     } catch (err) {
       console.error('Wallet connection failed:', err);
     } finally {

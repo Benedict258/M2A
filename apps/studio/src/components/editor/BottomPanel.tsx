@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronUp, ChevronDown, Loader2, RefreshCw, Trash2, Zap } from "lucide-react";
 import { useWorkflow } from "@/lib/workflow-context";
 import { api } from "@/lib/api";
+import { ErrorBoundary } from "@/lib/error-boundary";
 
 const TABS = ["Logs", "Results", "Memory", "Datasets", "Activity", "History"] as const;
 type Tab = (typeof TABS)[number];
@@ -12,6 +13,7 @@ export function BottomPanel() {
   const [open, setOpen] = useState(true);
 
   return (
+    <ErrorBoundary>
     <div className={`shrink-0 border-t border-border bg-surface ${open ? "h-56" : "h-9"} flex flex-col transition-all`}>
       <div className="flex h-9 items-center border-b border-border pr-2">
         <div className="flex">
@@ -53,11 +55,12 @@ export function BottomPanel() {
           {tab === "Results" && <ResultsTab nodes={nodes} />}
           {tab === "Memory" && <Empty>Enter a pool name above to explore shared agent memory.</Empty>}
           {tab === "Datasets" && <DatasetsTab />}
-          {tab === "Activity" && <ActivityTab />}
+          {tab === "Activity" && <ActivityTab active={tab === "Activity"} />}
           {tab === "History" && <HistoryTab />}
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
 
@@ -154,44 +157,44 @@ function DatasetsTab() {
   );
 }
 
-function ActivityTab() {
-  const { agents, selectedAgentId } = useWorkflow();
-  const [activities, setActivities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+function ActivityTab({ active }: { active: boolean }) {
+  const { selectedAgentId } = useWorkflow();
+  const [activityEntries, setActivityEntries] = useState<any[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
-  useEffect(() => {
+  const loadActivity = async () => {
     if (!selectedAgentId) return;
-    setLoading(true);
-    api.listExecutionHistory()
-      .then((data: any[]) => {
-        const mapped = (data || []).slice(0, 20).map((e: any) => ({
-          id: e.id || e.run_id,
-          action: e.workflow_name || e.name || "Execution",
-          protocol: e.status || "completed",
-          amountSpent: e.run_duration_ms || 0,
-          timestampMs: e.started_at ? new Date(e.started_at).getTime() : Date.now(),
-        }));
-        setActivities(mapped);
-      })
-      .catch(() => setActivities([]))
-      .finally(() => setLoading(false));
-  }, [selectedAgentId]);
+    setActivityLoading(true);
+    try {
+      const res = await fetch(`/api/v1/agents/${selectedAgentId}/activity`);
+      const entries = await res.json();
+      setActivityEntries(entries || []);
+    } catch { setActivityEntries([]); }
+    finally { setActivityLoading(false); }
+  };
 
-  if (loading) return <Loading />;
-  if (activities.length === 0) {
-    return <Empty>No agent activity recorded.</Empty>;
+  useEffect(() => { if (active) loadActivity(); }, [active, selectedAgentId]);
+
+  if (!selectedAgentId) {
+    return <Empty>Select an agent to view activity</Empty>;
+  }
+  if (activityLoading) return <Loading />;
+  if (activityEntries.length === 0) {
+    return <Empty>No activity for this agent</Empty>;
   }
   return (
-    <div className="space-y-2">
-      {activities.map((entry, i) => (
-        <div key={i} className="rounded-md border border-border bg-surface-container px-3 py-2 text-xs">
+    <div className="space-y-1.5">
+      {activityEntries.map((entry: any) => (
+        <div key={entry.id} className="rounded-md border border-border bg-surface-container px-2.5 py-1.5 text-xs">
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-foreground">{entry.action}</span>
-            <span className="text-muted-foreground">{new Date(entry.timestampMs).toLocaleTimeString()}</span>
+            <span className="font-medium text-foreground">{entry.action}</span>
+            <span className="text-[10px] text-muted-foreground">{new Date(entry.created_at).toLocaleTimeString()}</span>
           </div>
           <div className="mt-0.5 text-muted-foreground">
-            {entry.protocol}
-            {entry.amountSpent > 0 && <span className="ml-2">{entry.amountSpent}ms</span>}
+            {entry.protocol} · {entry.amount_spent} mist
+            {entry.tx_digest && (
+              <a href={`https://suiscan.xyz/testnet/tx/${entry.tx_digest}`} target="_blank" className="ml-1 text-primary hover:underline">View</a>
+            )}
           </div>
         </div>
       ))}
@@ -227,8 +230,8 @@ function HistoryTab() {
             <RefreshCw className="h-3 w-3" /> Refresh
           </button>
         </div>
-      </div>
-    );
+    </div>
+  );
   }
   return (
     <div className="space-y-2">

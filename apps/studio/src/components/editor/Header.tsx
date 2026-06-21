@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme";
 import { useWorkflow } from "@/lib/workflow-context";
 import { useSui } from "@/lib/sui-provider";
 import { api } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +43,7 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
     if (id) {
       await api.deployWorkflow(id);
       dispatch({ type: "set_deployed", deployed: true });
+      notify.success('Workflow deployed');
     }
   };
 
@@ -49,6 +51,7 @@ export function EditorHeader({ onCreateAgent, onTopUp, onTemplates, onConnectWal
     if (workflowId) {
       await api.undeployWorkflow(workflowId);
       dispatch({ type: "set_deployed", deployed: false });
+      notify.info('Workflow stopped');
     }
   };
 

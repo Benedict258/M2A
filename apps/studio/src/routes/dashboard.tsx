@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowLeft, ArrowUp, Boxes, Cpu, Database, Plus, RefreshCw, Shield, Workflow as WorkflowIcon, Diamond, Loader2 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { api } from "@/lib/api";
+import { ErrorBoundary } from "@/lib/error-boundary";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -72,6 +73,7 @@ function Dashboard() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
         <div className="flex items-center gap-2 px-5 py-4">
@@ -248,6 +250,7 @@ function Dashboard() {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
 

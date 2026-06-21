@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Settings2 } from "lucide-react";
 import { getNodeDef, type ConfigField } from "@/lib/nodes";
 import { useWorkflow } from "@/lib/workflow-context";
+import { ErrorBoundary } from "@/lib/error-boundary";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,29 +20,34 @@ export function Inspector() {
 
   if (!node) {
     return (
+      <ErrorBoundary>
       <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-surface lg:flex">
         <Header subtitle="No selection" />
         <div className="grid flex-1 place-items-center px-6 text-center text-xs text-muted-foreground">
           Select a node on the canvas to view its inspector.
         </div>
       </aside>
+      </ErrorBoundary>
     );
   }
 
   const def = getNodeDef(node.type);
   if (!def) {
     return (
+      <ErrorBoundary>
       <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-surface lg:flex">
         <Header subtitle="Unknown" />
         <div className="grid flex-1 place-items-center px-6 text-center text-xs text-muted-foreground">
           Unknown node type.
         </div>
       </aside>
+      </ErrorBoundary>
     );
   }
 
   if (def.fields && def.fields.length > 0) {
     return (
+      <ErrorBoundary>
       <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-surface lg:flex">
         <Header subtitle={def.label} />
         <ConfigForm
@@ -50,16 +56,19 @@ export function Inspector() {
           onApply={(data) => dispatch({ type: "update_node_config", id: node.id, config: data })}
         />
       </aside>
+      </ErrorBoundary>
     );
   }
 
   return (
+    <ErrorBoundary>
     <aside className="hidden w-80 shrink-0 flex-col border-l border-border bg-surface lg:flex">
       <Header subtitle={def.label} />
       <div className="grid flex-1 place-items-center px-6 text-center text-xs text-muted-foreground">
         No configuration for this node type.
       </div>
     </aside>
+    </ErrorBoundary>
   );
 }
 
