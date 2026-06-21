@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { LandingNavbar } from "@/components/landing-navbar";
 import HeroSection from "@/sections/HeroSection";
 import ProblemSection from "@/sections/ProblemSection";
@@ -7,8 +8,6 @@ import HowItWorksSection from "@/sections/HowItWorksSection";
 import FeaturesSection from "@/sections/FeaturesSection";
 import ArchitectureSection from "@/sections/ArchitectureSection";
 import DatasetsSection from "@/sections/DatasetsSection";
-import CommunitySection from "@/sections/CommunitySection";
-import CTASection from "@/sections/CTASection";
 import FooterSection from "@/sections/FooterSection";
 
 export const Route = createFileRoute("/")({
@@ -22,6 +21,11 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
+  useEffect(() => {
+    document.body.style.overflow = 'auto';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   return (
     <main className="min-h-screen bg-surface text-foreground">
       <LandingNavbar />
@@ -32,8 +36,6 @@ function LandingPage() {
       <FeaturesSection />
       <ArchitectureSection />
       <DatasetsSection />
-      <CommunitySection />
-      <CTASection />
       <FooterSection />
     </main>
   );

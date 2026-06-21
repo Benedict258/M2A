@@ -11,61 +11,61 @@ export default function ProblemSection() {
 
         <div className="mt-12 grid gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-8 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-danger via-danger to-transparent" />
-            <p className="text-label-bold text-danger">Without M2A</p>
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-500 via-slate-500 to-transparent" />
+              <p className="text-label-bold text-slate-400">Without M2A</p>
             <h3 className="mt-6 text-headline-md text-slate-300">Workflow runs. Value disappears.</h3>
             <div className="mt-6 space-y-4">
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger text-xs">1</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">1</span>
                 <p className="text-sm text-slate-400">Execution produces no permanent output</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger text-xs">2</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">2</span>
                 <p className="text-sm text-slate-400">No way to inspect or verify results</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger text-xs">3</span>
-                <p className="text-sm text-slate-400">Data evaporates — nothing compounds</p>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">3</span>
+                <p className="text-sm text-slate-400">Data evaporates, nothing compounds</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger text-xs">4</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400 text-xs">4</span>
                 <p className="text-sm text-slate-400">Every run starts from zero</p>
               </div>
             </div>
             <div className="mt-8 rounded-lg border border-border bg-surface px-4 py-3">
               <p className="text-mono text-slate-500">
-                <span className="text-danger">{'>'} Run complete.</span> All output<br />
-                <span className="text-danger">{'>'} discarded.</span> No dataset saved.
+                <span className="text-slate-400">{'>'} Run complete.</span> All output<br />
+                <span className="text-slate-400">{'>'} discarded.</span> No dataset saved.
               </p>
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-8 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-success via-success to-transparent" />
-            <p className="text-label-bold text-success">With M2A</p>
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary to-transparent" />
+              <p className="text-label-bold text-primary">With M2A</p>
             <h3 className="mt-6 text-headline-md text-slate-300">Every run. A dataset.</h3>
             <div className="mt-6 space-y-4">
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success text-xs">1</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">1</span>
                 <p className="text-sm text-slate-400">Execution automatically generates a dataset</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success text-xs">2</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">2</span>
                 <p className="text-sm text-slate-400">Verifiable output stored on Walrus</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success text-xs">3</span>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">3</span>
                 <p className="text-sm text-slate-400">Privacy-safe: PII redacted before storage</p>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-success/30 bg-success/10 text-success text-xs">4</span>
-                <p className="text-sm text-slate-400">Data compounds across runs — smarter over time</p>
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary text-xs">4</span>
+                <p className="text-sm text-slate-400">Data compounds across runs, smarter over time</p>
               </div>
             </div>
-            <div className="mt-8 rounded-lg border border-success/30 bg-success/5 px-4 py-3">
-              <p className="text-mono text-slate-400">
-                <span className="text-success">{'>'} Run complete.</span> Dataset<br />
-                <span className="text-success">{'>'} verified.</span> Privacy score: 100.
+              <div className="mt-8 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                <p className="text-mono text-slate-400">
+                  <span className="text-primary">{'>'} Run complete.</span> Dataset<br />
+                  <span className="text-primary">{'>'} verified.</span> Privacy score: 100.
               </p>
             </div>
           </div>

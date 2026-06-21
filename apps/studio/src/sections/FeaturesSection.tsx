@@ -1,53 +1,24 @@
 const NODE_CATEGORIES = [
-  {
-    label: 'Input',
-    count: 4,
-    items: ['Manual Input', 'API Polling', 'Webhook', 'File Watcher'],
-  },
-  {
-    label: 'LLM',
-    count: 6,
-    items: ['Chat Completion', 'Prompt Template', 'Chain', 'Router', 'Tool Call', 'Structured Output'],
-  },
-  {
-    label: 'Transform',
-    count: 8,
-    items: ['JSON Parser', 'Text Splitter', 'Merge', 'Filter', 'Map', 'Sort', 'Dedupe', 'Template'],
-  },
-  {
-    label: 'Decision',
-    count: 4,
-    items: ['Conditional', 'Switch', 'Loop', 'Parallel Fork'],
-  },
-  {
-    label: 'Memory',
-    count: 5,
-    items: ['Remember', 'Recall', 'Search', 'Delete', 'Summarize'],
-  },
-  {
-    label: 'Integration',
-    count: 10,
-    items: ['Sui RPC', 'Walrus Blob', 'SEAL Encrypt', 'HTTP Client', 'Wallet Sign', 'Move Call', 'NFT Mint', 'Coin Transfer', 'Event Subscribe', 'GraphQL'],
-  },
-  {
-    label: 'Tool',
-    count: 6,
-    items: ['Web Search', 'Code Execute', 'File Read', 'File Write', 'Email', 'Notification'],
-  },
-  {
-    label: 'Output',
-    count: 5,
-    items: ['Response', 'Webhook', 'File Export', 'Database Write', 'Stream'],
-  },
+  { label: 'DeFi', count: 12, items: ['Cetus', 'DeepBook', 'Aftermath', 'Navi', 'Suilend', 'Haedal', 'Volo', 'Bucket', 'Bluefin', 'AlphaFi', 'Price Alert'] },
+  { label: 'Web2', count: 7, items: ['Email', 'Slack', 'Discord', 'Telegram', 'Twitter', 'Google Sheets', 'Airtable', 'Notion'] },
+  { label: 'Triggers', count: 6, items: ['Input', 'Webhook', 'Schedule', 'On-Chain Event', 'Form', 'Discord Bot'] },
+  { label: 'Blockchain', count: 5, items: ['Sui RPC', 'Walrus', 'SuiNS', 'Balance Monitor', 'File I/O'] },
+  { label: 'AI Agents', count: 4, items: ['M2A Agent', 'Spawn Agent', 'Code Node', 'Loop'] },
+  { label: 'Logic/Data', count: 7, items: ['HTTP Request', 'JSON Parser', 'CSV Parser', 'RSS Reader', 'Conditional', 'Merge', 'Wait', 'Counter'] },
+  { label: 'Oracles', count: 2, items: ['Pyth', 'Switchboard'] },
+  { label: 'Bridge', count: 2, items: ['Wormhole', 'Sui Bridge'] },
+  { label: 'NFT', count: 3, items: ['NFT Mint', 'TradePort', 'Floor Alert'] },
+  { label: 'Storage', count: 1, items: ['IPFS Upload'] },
 ];
 
 const WORKFLOW = [
-  { label: 'Input', node: 'Query', desc: 'User question enters the pipeline' },
-  { label: 'Planner', node: 'Query Planner', desc: 'Decomposes into sub-queries' },
-  { label: 'Research A', node: 'Researcher A', desc: 'Web search + LLM synthesis' },
-  { label: 'Research B', node: 'Researcher B', desc: 'Web search + LLM synthesis (parallel)', parallel: true },
-  { label: 'Analysis', node: 'Analyst', desc: 'Merges results, scores confidence' },
-  { label: 'Report', node: 'Report Writer', desc: 'Produces final structured output' },
+  { label: 'Trigger', node: 'Schedule', desc: 'Runs every hour, on-chain' },
+  { label: 'Oracle', node: 'Pyth Feed', desc: 'Fetches SUI/USD price' },
+  { label: 'Decision', node: 'Conditional', desc: 'If SUI &gt; $5, proceed' },
+  { label: 'DEX', node: 'Aftermath Swap', desc: 'SUI → USDC at best rate' },
+  { label: 'Lending', node: 'Navi Supply', desc: 'Deposit USDC for yield' },
+  { label: 'Storage', node: 'Walrus Blob', desc: 'Log tx, generate dataset' },
+  { label: 'Output', node: 'Telegram', desc: 'Send confirmation alert' },
 ];
 
 export default function FeaturesSection() {
@@ -80,12 +51,12 @@ export default function FeaturesSection() {
         </div>
 
         <div className="mt-16">
-          <p className="text-label-bold text-slate-600 text-center mb-6">Reference workflow: Deep Research</p>
+          <p className="text-label-bold text-slate-600 text-center mb-6">Reference workflow: DeFi Yield Automation on Sui</p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {WORKFLOW.map((step, i) => (
               <div key={step.label} className="flex items-center gap-2">
                 <div className="flex flex-col items-center">
-                  <div className={'rounded-lg border px-4 py-3 text-center min-w-[110px] ' + (step.parallel ? 'border-warning/50 bg-warning/5' : 'border-border bg-card')}>
+                  <div className="rounded-lg border border-border bg-card px-4 py-3 text-center min-w-[110px]">
                     <p className="text-label-bold text-slate-500">{step.label}</p>
                     <p className="mt-1 text-sm font-semibold text-slate-300">{step.node}</p>
                   </div>

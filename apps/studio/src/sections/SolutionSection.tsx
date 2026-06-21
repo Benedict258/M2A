@@ -44,7 +44,7 @@ export default function SolutionSection() {
             </span>
             <h3 className="mt-5 text-headline-md">Dataset Generation</h3>
             <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              Every automation run produces a verifiable, privacy-safe dataset — automatically. This is what n8n doesn't do.
+              Every automation run produces a verifiable, privacy-safe dataset, automatically. This is what n8n doesn't do.
             </p>
             <div className="mt-6 rounded-lg border border-border bg-surface px-3 py-2.5">
               <pre className="text-mono text-slate-500 text-[11px] leading-relaxed overflow-x-auto">

@@ -5,14 +5,7 @@ const STATS = [
   { value: '4', label: 'LLM Providers', desc: 'Groq, Llama, OpenAI, Anthropic' },
 ];
 
-const TECH = [
-  { category: 'Core', items: ['Sui Network'] },
-  { category: 'Storage', items: ['Walrus', 'MemWal', 'SEAL'] },
-  { category: 'AI', items: ['Groq', 'Llama 3'] },
-  { category: 'Frontend', items: ['React 19', 'Vite 8', 'Tailwind CSS 4'] },
-  { category: 'Runtime', items: ['Express', 'TypeScript'] },
-  { category: 'Packages', items: ['buiry', '@m2a/sdk', '@m2a/client'] },
-];
+const TECH = ['Sui', 'Walrus', 'MemWal', 'SEAL', 'PTBs'];
 
 export default function ArchitectureSection() {
   return (
@@ -35,18 +28,11 @@ export default function ArchitectureSection() {
           ))}
         </div>
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {TECH.map((row) => (
-            <div key={row.category} className="rounded-lg border border-border bg-card p-5">
-              <p className="text-label-bold text-slate-500">{row.category}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {row.items.map((item) => (
-                  <span key={item} className="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-slate-400">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
+        <div className="mt-10 flex flex-wrap justify-center gap-3">
+          {TECH.map((item) => (
+            <span key={item} className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-primary">
+              {item}
+            </span>
           ))}
         </div>
       </div>

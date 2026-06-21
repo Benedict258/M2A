@@ -4,9 +4,9 @@ import { useTheme } from '@/lib/theme';
 import { Sun, Moon } from 'lucide-react';
 
 const NAV = [
-  { label: 'Automation', href: '#features' },
-  { label: 'Datasets', href: '#datasets' },
-  { label: 'Architecture', href: '#architecture' },
+  { label: 'Platform', href: '#features' },
+  { label: 'Data', href: '#datasets' },
+  { label: 'Stack', href: '#architecture' },
 ] as const;
 
 export function LandingNavbar() {

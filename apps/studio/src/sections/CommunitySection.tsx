@@ -3,15 +3,15 @@ export default function CommunitySection() {
     <section className="border-b border-border bg-surface-low">
       <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
         <div className="text-center">
-          <h2 className="text-headline-lg">Built for the community.</h2>
+          <h2 className="text-headline-lg">Building on the Sui stack, <span className="text-primary">made simple.</span></h2>
           <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-            M2A is open source — a full-stack attempt at fixing the hardest problem in AI: stateless agents.
+            Connecting to Sui protocols shouldn't require reading Move source code. M2A wraps every major Sui primitive into a drag-and-drop node, DeFi, bridges, oracles, NFTs, liquid staking. Compose them visually, run them as workflows, get verifiable datasets as output.
           </p>
         </div>
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <a
-            href="https://github.com/anomalyco/m2a"
+            href="https://github.com/CYBWithFlourish/M2A"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium text-slate-300 transition-all hover:border-primary/60 hover:text-white"
@@ -23,16 +23,16 @@ export default function CommunitySection() {
           </a>
           <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium text-slate-400">
             <span className="text-success">●</span>
-            Open Source — GPL v3
+            Open Source, GPL v3
           </div>
         </div>
 
         <div className="mt-12 mx-auto max-w-2xl rounded-xl border border-border bg-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
           <blockquote className="text-sm text-slate-400 italic leading-relaxed">
-            "We built M2A because every AI agent framework ships with state management as an afterthought. Agents talk, think, and decide — but then forget everything. Walrus gives us permanence. Sui gives us proof. Together, they give agents a memory that actually survives."
+            "We built M2A because every major Sui protocol deserves a drag-and-drop node. DeFi traders shouldn't need to read Move to compose a swap-and-lend strategy. Developers shouldn't need to manage five SDKs to bridge assets and monitor positions. The Sui ecosystem is rich, the tooling to connect it all should be simple."
           </blockquote>
-          <p className="mt-4 text-label-bold text-primary">— M2A Core Team</p>
+          <p className="mt-4 text-label-bold text-primary">M2A Core Team</p>
         </div>
       </div>
     </section>
