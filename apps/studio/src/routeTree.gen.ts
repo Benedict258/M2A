@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ZkloginCallbackRouteImport } from './routes/zklogin-callback'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ZkloginCallbackRoute = ZkloginCallbackRouteImport.update({
   id: '/zklogin-callback',
   path: '/zklogin-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/studio': typeof StudioRoute
   '/zklogin-callback': typeof ZkloginCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/studio': typeof StudioRoute
   '/zklogin-callback': typeof ZkloginCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/studio': typeof StudioRoute
   '/zklogin-callback': typeof ZkloginCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/zklogin-callback'
+  fullPaths: '/' | '/dashboard' | '/studio' | '/zklogin-callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/zklogin-callback'
-  id: '__root__' | '/' | '/dashboard' | '/zklogin-callback'
+  to: '/' | '/dashboard' | '/studio' | '/zklogin-callback'
+  id: '__root__' | '/' | '/dashboard' | '/studio' | '/zklogin-callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  StudioRoute: typeof StudioRoute
   ZkloginCallbackRoute: typeof ZkloginCallbackRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/zklogin-callback'
       fullPath: '/zklogin-callback'
       preLoaderRoute: typeof ZkloginCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  StudioRoute: StudioRoute,
   ZkloginCallbackRoute: ZkloginCallbackRoute,
 }
 export const routeTree = rootRouteImport
