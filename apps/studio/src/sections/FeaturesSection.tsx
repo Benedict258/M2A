@@ -26,11 +26,7 @@ export default function FeaturesSection() {
           {NODE_CATEGORIES.map((cat) => (
             <div
               key={cat.label}
-              className="rounded-3xl p-7 flex flex-col justify-between min-h-[260px]"
-              style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, #0f1117 40%, rgba(139,92,246,0.04) 100%)',
-                border: '1px solid rgba(139, 92, 246, 0.2)',
-              }}
+              className="rounded-3xl p-7 flex flex-col justify-between min-h-[260px] dark:bg-gradient-to-br dark:from-[rgba(139,92,246,0.08)] dark:via-[#0f1117] dark:to-[rgba(139,92,246,0.04)] bg-gradient-to-br from-[#f8f9fc] via-[#f0f1f5] to-[#f8f9fc] border border-slate-200 dark:border-[rgba(139,92,246,0.2)]"
             >
               <div>
                 <h3 className="font-display text-2xl font-bold text-white mb-4">
