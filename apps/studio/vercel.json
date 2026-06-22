@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && npm install && npm -w @m2a/sdk run build && npm -w @m2a/client run build && npm -w @m2a/studio run build && node prepare-vercel.cjs",
+  "buildCommand": "cd ../.. && npm install && npm -w @m2a/sdk run build && npm -w @m2a/client run build && npm -w @m2a/studio run build && node apps/studio/prepare-vercel.cjs",
   "installCommand": "cd ../.. && npm install",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "http://152.67.149.134:3001/api/$1" },
