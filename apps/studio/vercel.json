@@ -1,16 +1,10 @@
 {
-  "buildCommand": "cd ../.. && npm install && npm -w @m2a/sdk run build && npm -w @m2a/client run build && npm -w @m2a/studio run build",
+  "buildCommand": "cd ../.. && npm install && npm -w @m2a/sdk run build && npm -w @m2a/client run build && npm -w @m2a/studio run build && node prepare-vercel.cjs",
   "installCommand": "cd ../.. && npm install",
-  "outputDirectory": ".",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "http://152.67.149.134:3001/api/$1" },
     { "source": "/health", "destination": "http://152.67.149.134:3001/health" },
     { "source": "/auth/(.*)", "destination": "http://152.67.149.134:3001/auth/$1" },
-    { "source": "/(.*)", "destination": "/dist/server/server" }
-  ],
-  "functions": {
-    "dist/server/server.js": {
-      "includeFiles": "dist/**"
-    }
-  }
+    { "source": "/(.*)", "destination": "/api/server" }
+  ]
 }
